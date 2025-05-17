@@ -64,31 +64,31 @@ export default function ProfilePage() {
 
   // Fetch user profile
   const { data: user, isLoading: isLoadingUser } = useQuery({
-    queryKey: ['/api/users', userId],
+    queryKey: [`/api/users/${userId}`],
     enabled: !!userId,
   });
 
   // Fetch user's catches
   const { data: catches, isLoading: isLoadingCatches } = useQuery({
-    queryKey: ['/api/users', userId, 'catches'],
+    queryKey: [`/api/users/${userId}/catches`],
     enabled: !!userId,
   });
 
   // Fetch user stats
   const { data: stats, isLoading: isLoadingStats } = useQuery({
-    queryKey: ['/api/users', userId, 'stats'],
+    queryKey: [`/api/users/${userId}/stats`],
     enabled: !!userId,
   });
 
   // Fetch species breakdown
   const { data: speciesBreakdown, isLoading: isLoadingSpecies } = useQuery({
-    queryKey: ['/api/users', userId, 'species'],
+    queryKey: [`/api/users/${userId}/species`],
     enabled: !!userId,
   });
 
   // Fetch following status if looking at someone else's profile
   const { data: followStatus, isLoading: isLoadingFollowStatus } = useQuery({
-    queryKey: ['/api/users', userId, 'is-following'],
+    queryKey: [`/api/users/${userId}/is-following`],
     enabled: isAuthenticated && !!userId && !isOwnProfile,
   });
 

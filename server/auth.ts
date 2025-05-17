@@ -33,6 +33,13 @@ export const isAuthenticated = (req: Request, res: Response, next: NextFunction)
     return next();
   }
   
+  // Check localStorage fallback authentication from request headers
+  if (req.headers['x-auth-user-id']) {
+    console.log("Using fallback auth from headers:", req.headers['x-auth-user-id']);
+    req.headers['user-id'] = req.headers['x-auth-user-id'] as string;
+    return next();
+  }
+  
   console.log("Authentication failed - no valid session");
   return res.status(401).json({ message: "Unauthorized" });
 };

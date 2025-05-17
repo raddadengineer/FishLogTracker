@@ -84,41 +84,34 @@ const isModeratorOrAdmin = async (req: Request, res: Response, next: Function) =
   }
 };
 
-export async function registerRoutes(app: Express): Promise<Server> {
-  // Set up Replit Authentication
-  await setupAuth(app);
+import {
+  login,
+  register,
+  logout, 
+  getCurrentUser,
+  isAuthenticated,
+  isAdmin,
+  isModeratorOrAdmin
+} from "./auth";
 
+export async function registerRoutes(app: Express): Promise<Server> {
   // Serve uploaded files
   app.use("/uploads", isAuthenticated, express.static(path.join(process.cwd(), "uploads")));
-  
+
   // Auth routes
-  app.get('/api/auth/user', async (req: any, res) => {
+  app.post("/api/auth/login", login);
+  app.post("/api/auth/register", register);
+  app.post("/api/auth/logout", logout);
+  app.get("/api/auth/user", getCurrentUser);
+  
+  // Add an endpoint to get all users (for admin page)
+  app.get('/api/admin/users', isAuthenticated, isAdmin, async (req, res) => {
     try {
-      if (!req.user || !req.user.claims || !req.user.claims.sub) {
-        return res.status(401).json({ message: "Not authenticated" });
-      }
-      
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      
-      if (!user) {
-        // Auto-create user if they don't exist yet
-        const newUser = await storage.upsertUser({
-          id: userId,
-          username: `user${userId}`,
-          email: req.user.claims.email,
-          firstName: req.user.claims.first_name,
-          lastName: req.user.claims.last_name,
-          profileImageUrl: req.user.claims.profile_image_url,
-          role: "user"
-        });
-        return res.json(newUser);
-      }
-      
-      res.json(user);
+      const allUsers = await db.select().from(usersTable);
+      res.json(allUsers);
     } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
     }
   });
   

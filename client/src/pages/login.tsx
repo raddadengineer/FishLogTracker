@@ -54,11 +54,14 @@ export default function LoginPage() {
         description: "You have been logged in successfully.",
       });
 
-      // Refresh auth state and navigate to profile
+      // Refresh auth state
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
       
-      // Force a full page navigation to ensure proper loading
-      window.location.href = `/profile/${data.user.id}`;
+      // Navigate to profile
+      setTimeout(() => {
+        // Use 'me' to access the current user profile
+        window.location.href = `/profile/me`;
+      }, 300);
     } catch (error) {
       toast({
         title: "Login failed",

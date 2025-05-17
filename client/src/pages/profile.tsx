@@ -29,7 +29,7 @@ import CatchForm from "@/components/catches/CatchForm";
 export default function ProfilePage() {
   const params = useParams();
   const [_, navigate] = useLocation();
-  const { user: currentUser, isAuthenticated } = useAuth();
+  const { user: currentUser, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
   
   // Use URL param, fallback to localStorage, or current user context
@@ -44,6 +44,16 @@ export default function ProfilePage() {
         description: "Your fishing journey dashboard is ready!",
         variant: "default"
       });
+    } else if (!userId) {
+      // No user ID available, redirect to login
+      toast({
+        title: "Authentication required",
+        description: "Please login to view your profile",
+        variant: "destructive"
+      });
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 1500);
     }
   }, [isAuthenticated, userId]);
 

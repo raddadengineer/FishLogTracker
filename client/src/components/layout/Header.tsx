@@ -121,7 +121,14 @@ export default function Header() {
                         onClick={async (e) => {
                           e.preventDefault();
                           try {
+                            // Clear localStorage auth data
+                            localStorage.removeItem('currentUserId');
+                            localStorage.removeItem('currentUserName');
+                            
+                            // Log out from server session
                             await fetch("/api/auth/logout", { method: "POST" });
+                            
+                            // Navigate home
                             window.location.href = "/";
                           } catch (error) {
                             console.error("Logout failed:", error);

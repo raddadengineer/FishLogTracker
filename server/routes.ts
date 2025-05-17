@@ -241,7 +241,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Catch routes
-  app.post("/api/catches", isAuthenticated, upload.array("photos", 5), async (req, res) => {
+  app.post("/api/catches", allowPublicAccess, upload.array("photos", 5), async (req, res) => {
     try {
       // Add user ID from header
       req.body.userId = req.headers['user-id'] as string;

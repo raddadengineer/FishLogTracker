@@ -12,7 +12,7 @@ app.use(cookieSession({
   name: 'fish-tracker-session',
   keys: ['fish-tracker-secret-key'],
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-  secure: process.env.NODE_ENV === 'production',
+  secure: false, // Changed from NODE_ENV check to allow all environments
   httpOnly: true,
   sameSite: 'lax' // Allows the cookie to be sent along with requests initiated by third-party websites
 }));

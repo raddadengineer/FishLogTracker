@@ -2,7 +2,7 @@ import express, { type Express, type Request, type Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { getWeatherData } from "./services/openWeatherService";
-import { insertCatchSchema, insertCommentSchema, insertLakeSchema, users } from "@shared/schema";
+import { insertCatchSchema, insertCommentSchema, insertLakeSchema, users as usersTable } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
 import path from "path";
@@ -92,14 +92,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/uploads", isAuthenticated, express.static(path.join(process.cwd(), "uploads")));
   
   // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  app.get('/api/auth/user', async (req: any, res) => {
     try {
+      if (!req.user || !req.user.claims || !req.user.claims.sub) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
+      
+      if (!user) {
+        // Auto-create user if they don't exist yet
+        const newUser = await storage.upsertUser({
+          id: userId,
+          username: `user${userId}`,
+          email: req.user.claims.email,
+          firstName: req.user.claims.first_name,
+          lastName: req.user.claims.last_name,
+          profileImageUrl: req.user.claims.profile_image_url,
+          role: "user"
+        });
+        return res.json(newUser);
+      }
+      
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+  
+  // Admin routes
+  app.get('/api/admin/users', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const allUsers = await db.select().from(usersTable);
+      res.json(allUsers);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
     }
   });
   

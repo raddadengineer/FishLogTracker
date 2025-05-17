@@ -3,10 +3,14 @@ import { getQueryFn } from "@/lib/queryClient";
 
 export function useAuth() {
   // First check localStorage for fallback user data
-  const localStorageUser = {
-    id: localStorage.getItem('currentUserId'),
-    username: localStorage.getItem('currentUserName')
-  };
+  const userId = localStorage.getItem('currentUserId');
+  const userName = localStorage.getItem('currentUserName');
+  
+  const localStorageUser = userId && userName ? {
+    id: userId,
+    username: userName,
+    role: 'user'
+  } : null;
   
   const { 
     data: user, 
@@ -22,7 +26,7 @@ export function useAuth() {
   });
   
   // Either use the API-returned user or fallback to localStorage data
-  const finalUser = user || (localStorageUser.id ? localStorageUser : null);
+  const finalUser = user || localStorageUser;
   const isAuthenticated = !!finalUser;
 
   return {

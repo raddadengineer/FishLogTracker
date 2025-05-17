@@ -27,7 +27,8 @@ interface CatchCardProps {
     createdAt: string;
     isVerified?: boolean;
     weatherData?: any;
-    user: {
+    userId?: string;
+    user?: {
       id: string;
       username: string;
       profileImageUrl?: string;
@@ -89,7 +90,9 @@ export default function CatchCard({ catchData }: CatchCardProps) {
                 <AvatarFallback>{(catchData.user?.username || 'User').substring(0, 2).toUpperCase()}</AvatarFallback>
               </Avatar>
               <div>
-                <p className="font-medium text-sm">{catchData.user?.username || 'Anonymous User'}</p>
+                <p className="font-medium text-sm">
+                  {catchData.user?.username || (catchData.userId && `User-${catchData.userId.substring(0, 4)}`) || 'Anonymous'}
+                </p>
                 <p className="text-xs text-gray-500">{timeAgo(catchData.createdAt)}</p>
               </div>
             </a>

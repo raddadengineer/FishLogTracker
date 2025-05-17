@@ -3,6 +3,7 @@ import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { fishSpecies } from "@/lib/fishSpecies";
 import { getFishSpeciesById } from "@/lib/fishSpecies";
 import { formatDate, formatSize, formatWeight, formatTemperature, formatDepth } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -99,6 +100,12 @@ export default function ProfilePage() {
     }
   });
 
+  // Create a mapping of fish IDs to their display names
+  const fishSpeciesMap: {[key: string]: string} = {};
+  fishSpecies.forEach(fish => {
+    fishSpeciesMap[fish.id] = fish.name;
+  });
+  
   // Format data for species chart
   const formattedSpeciesData = React.useMemo(() => {
     // Check if data exists and has the expected structure
@@ -126,7 +133,7 @@ export default function ProfilePage() {
     }
     
     return countsArray.map((item: any) => ({
-      species: item.species,
+      species: fishSpeciesMap[item.species] || item.species,
       count: typeof item.count === 'string' ? parseInt(item.count) : item.count,
       percentage: (typeof item.count === 'string' ? parseInt(item.count) : item.count) / (stats?.totalCatches || 1) * 100
     }));

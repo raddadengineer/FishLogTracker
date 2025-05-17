@@ -14,15 +14,21 @@ export async function apiRequest(
   isFormData: boolean = false,
 ): Promise<Response> {
   // Set up headers and body based on content type
-  let headers = {};
+  let headers: Record<string, string> = {};
   let body: any = undefined;
+  
+  // Add authentication from localStorage if available
+  const userId = localStorage.getItem('currentUserId');
+  if (userId) {
+    headers['x-auth-user-id'] = userId;
+  }
   
   if (data) {
     if (isFormData || data instanceof FormData) {
       // Don't set Content-Type for FormData, browser will set it with boundary
       body = data;
     } else {
-      headers = { "Content-Type": "application/json" };
+      headers["Content-Type"] = "application/json";
       body = JSON.stringify(data);
     }
   }

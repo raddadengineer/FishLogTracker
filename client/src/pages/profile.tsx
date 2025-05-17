@@ -105,14 +105,30 @@ export default function ProfilePage() {
     if (!speciesBreakdown) return [];
     
     // Handle different API response formats
-    const countsArray = Array.isArray(speciesBreakdown) 
-      ? speciesBreakdown // Direct array format
-      : speciesBreakdown.counts || []; // Object with counts property
+    let countsArray = [];
+    
+    if (Array.isArray(speciesBreakdown)) {
+      countsArray = speciesBreakdown;
+    } else if (speciesBreakdown.counts) {
+      // If it's in {counts: [...]} format
+      if (Array.isArray(speciesBreakdown.counts)) {
+        countsArray = speciesBreakdown.counts;
+      } 
+      // If it's in {counts: {rows: [...]}} format from PostgreSQL response
+      else if (speciesBreakdown.counts && speciesBreakdown.counts.rows) {
+        countsArray = speciesBreakdown.counts.rows;
+      }
+    }
+    
+    if (!Array.isArray(countsArray)) {
+      console.error("Species breakdown data is not in expected format:", speciesBreakdown);
+      return [];
+    }
     
     return countsArray.map((item: any) => ({
       species: item.species,
-      count: item.count,
-      percentage: (item.count / (stats?.totalCatches || 1)) * 100
+      count: typeof item.count === 'string' ? parseInt(item.count) : item.count,
+      percentage: (typeof item.count === 'string' ? parseInt(item.count) : item.count) / (stats?.totalCatches || 1) * 100
     }));
   }, [speciesBreakdown, stats?.totalCatches]);
     

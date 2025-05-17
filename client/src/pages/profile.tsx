@@ -32,9 +32,11 @@ export default function ProfilePage() {
   const { user: currentUser, isAuthenticated } = useAuth();
   const { toast } = useToast();
   
-  // Handle special 'me' case or use the URL param or fallback to current user
-  const userId = params.id === 'me' ? currentUser?.id : (params.id || currentUser?.id);
-  const isOwnProfile = currentUser?.id === userId || params.id === 'me';
+  // Use URL param, fallback to localStorage, or current user context
+  const localUserId = localStorage.getItem('currentUserId');
+  const userId = params.id || localUserId || currentUser?.id;
+  const isOwnProfile = (currentUser && currentUser.id === userId) || 
+                       (localUserId && localUserId === userId);
   const [following, setFollowing] = useState(false);
   const [isLoadingFollow, setIsLoadingFollow] = useState(false);
 

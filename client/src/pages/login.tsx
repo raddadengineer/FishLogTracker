@@ -10,6 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { LoaderCircle } from "lucide-react";
 import { Link } from "wouter";
+import { queryClient } from "@/lib/queryClient";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -53,8 +54,11 @@ export default function LoginPage() {
         description: "You have been logged in successfully.",
       });
 
-      // Redirect to user's profile page after successful login
-      setLocation(`/profile/${data.user.id}`);
+      // Refresh auth state and navigate to profile
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      
+      // Force a full page navigation to ensure proper loading
+      window.location.href = `/profile/${data.user.id}`;
     } catch (error) {
       toast({
         title: "Login failed",

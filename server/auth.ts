@@ -78,7 +78,7 @@ export const login = async (req: Request, res: Response) => {
           id: uuidv4(),
           username: "admin",
           email: "admin@example.com",
-          passwordHash,
+          passwordHash: passwordHash,
           role: "admin"
         }).returning();
         

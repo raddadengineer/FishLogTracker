@@ -21,6 +21,8 @@ export function createSession(req: Request, userId: string, role: string) {
 // Middleware to check if user is authenticated
 export const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
   if (req.session && (req.session as any).isAuthenticated) {
+    // Add user ID to request headers for use in routes
+    req.headers['user-id'] = (req.session as any).userId;
     return next();
   }
   return res.status(401).json({ message: "Unauthorized" });
@@ -172,7 +174,11 @@ export const register = async (req: Request, res: Response) => {
 
 // Logout handler
 export const logout = (req: Request, res: Response) => {
-  req.session = null;
+  if (req.session) {
+    (req.session as any).isAuthenticated = false;
+    (req.session as any).userId = undefined;
+    (req.session as any).role = undefined;
+  }
   return res.status(200).json({ message: "Logout successful" });
 };
 
@@ -187,7 +193,11 @@ export const getCurrentUser = async (req: Request, res: Response) => {
     const user = await storage.getUser(userId);
     
     if (!user) {
-      req.session = null;
+      if (req.session) {
+        (req.session as any).isAuthenticated = false;
+        (req.session as any).userId = undefined;
+        (req.session as any).role = undefined;
+      }
       return res.status(401).json({ message: "User not found" });
     }
     

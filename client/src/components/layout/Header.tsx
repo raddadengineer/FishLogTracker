@@ -115,22 +115,35 @@ export default function Header() {
                         Settings
                     </Link>
                     <hr className="my-2" />
-                    <a 
-                      href="/api/logout"
-                      className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-md text-red-600"
-                    >
-                      <i className="ri-logout-box-line"></i>
-                      Log Out
-                    </a>
+                    <SheetClose asChild>
+                      <Link
+                        href="#"
+                        onClick={async (e) => {
+                          e.preventDefault();
+                          try {
+                            await fetch("/api/auth/logout", { method: "POST" });
+                            window.location.href = "/";
+                          } catch (error) {
+                            console.error("Logout failed:", error);
+                          }
+                        }}
+                        className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-md text-red-600"
+                      >
+                        <i className="ri-logout-box-line"></i>
+                        Log Out
+                      </Link>
+                    </SheetClose>
                   </>
                 ) : (
-                  <a 
-                    href="/api/login"
-                    className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-md"
-                  >
-                    <i className="ri-login-box-line"></i>
-                    Log In
-                  </a>
+                  <SheetClose asChild>
+                    <Link 
+                      href="/login"
+                      className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-md"
+                    >
+                      <i className="ri-login-box-line"></i>
+                      Log In
+                    </Link>
+                  </SheetClose>
                 )}
               </div>
             </SheetContent>

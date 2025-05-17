@@ -44,11 +44,9 @@ export default function Header() {
     <header className="bg-white shadow-sm sticky top-0 z-40">
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
         <div className="flex items-center">
-          <Link href="/">
-            <a className="flex items-center">
-              <span className="text-primary font-semibold text-xl mr-1">Fish</span>
-              <span className="text-secondary font-semibold text-xl">Tracker</span>
-            </a>
+          <Link href="/" className="flex items-center">
+            <span className="text-primary font-semibold text-xl mr-1">Fish</span>
+            <span className="text-secondary font-semibold text-xl">Tracker</span>
           </Link>
         </div>
         
@@ -102,17 +100,13 @@ export default function Header() {
               <div className="py-4 flex flex-col space-y-2">
                 {isAuthenticated ? (
                   <>
-                    <Link href={`/profile/${user?.id}`}>
-                      <a className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-md">
+                    <Link href={`/profile/${user?.id}`} className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-md">
                         <i className="ri-user-line"></i>
                         Profile
-                      </a>
                     </Link>
-                    <Link href="/settings">
-                      <a className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-md">
+                    <Link href="/settings" className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-md">
                         <i className="ri-settings-line"></i>
                         Settings
-                      </a>
                     </Link>
                     <hr className="my-2" />
                     <a 

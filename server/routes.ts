@@ -2,11 +2,14 @@ import express, { type Express, type Request, type Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { getWeatherData } from "./services/openWeatherService";
-import { insertCatchSchema, insertCommentSchema, insertLakeSchema } from "@shared/schema";
+import { insertCatchSchema, insertCommentSchema, insertLakeSchema, users } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { setupAuth, isAuthenticated } from "./replitAuth";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 // Configure multer for file uploads
 const upload = multer({
@@ -35,22 +38,20 @@ const upload = multer({
   },
 });
 
-// Middleware to check if user is authenticated
-const isAuthenticated = (req: Request, res: Response, next: Function) => {
-  // For now, we'll assume all requests are allowed (will be replaced with proper auth)
-  next();
-};
+// Note: isAuthenticated is now imported from replitAuth.ts
 
 // Middleware to check if user is an admin
 const isAdmin = async (req: Request, res: Response, next: Function) => {
   try {
-    const userId = req.headers['user-id'] as string;
-    if (!userId) {
+    // Get user from session
+    const user = req.user as any;
+    if (!user?.claims?.sub) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const user = await storage.getUser(userId);
-    if (!user || user.role !== "admin") {
+    const userId = user.claims.sub;
+    const dbUser = await storage.getUser(userId);
+    if (!dbUser || dbUser.role !== "admin") {
       return res.status(403).json({ message: "Forbidden: Admin access required" });
     }
 
@@ -64,13 +65,15 @@ const isAdmin = async (req: Request, res: Response, next: Function) => {
 // Middleware to check if user is a moderator or admin
 const isModeratorOrAdmin = async (req: Request, res: Response, next: Function) => {
   try {
-    const userId = req.headers['user-id'] as string;
-    if (!userId) {
+    // Get user from session
+    const user = req.user as any;
+    if (!user?.claims?.sub) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const user = await storage.getUser(userId);
-    if (!user || (user.role !== "moderator" && user.role !== "admin")) {
+    const userId = user.claims.sub;
+    const dbUser = await storage.getUser(userId);
+    if (!dbUser || (dbUser.role !== "moderator" && dbUser.role !== "admin")) {
       return res.status(403).json({ message: "Forbidden: Moderator or admin access required" });
     }
 
@@ -82,8 +85,54 @@ const isModeratorOrAdmin = async (req: Request, res: Response, next: Function) =
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Set up Replit Authentication
+  await setupAuth(app);
+
   // Serve uploaded files
   app.use("/uploads", isAuthenticated, express.static(path.join(process.cwd(), "uploads")));
+  
+  // Auth routes
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+  
+  // Admin account creation route (only accessible if no admin exists)
+  app.post('/api/admin/setup', async (req, res) => {
+    try {
+      // First check if any admin exists
+      const adminUsers = await db.select().from(users).where(eq(users.role, "admin")).limit(1);
+      
+      if (adminUsers.length > 0) {
+        return res.status(403).json({ message: "Admin already exists" });
+      }
+      
+      // Get the current user from the session
+      const user = req.user as any;
+      if (!user?.claims?.sub) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const userId = user.claims.sub;
+      
+      // Promote the user to admin
+      const adminUser = await storage.updateUserRole(userId, "admin");
+      
+      res.status(200).json({ 
+        message: "Admin account created successfully", 
+        user: adminUser 
+      });
+    } catch (error) {
+      console.error("Error creating admin account:", error);
+      res.status(500).json({ message: "Failed to create admin account" });
+    }
+  });
 
   // User routes
   app.get("/api/users/:id", isAuthenticated, async (req, res) => {

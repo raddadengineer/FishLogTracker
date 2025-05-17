@@ -190,21 +190,36 @@ export default function CatchForm() {
           formData.append('photos', photo);
         });
         
-        // Create custom headers with auth info
-        const headers: Record<string, string> = {};
-        if (userId) {
-          headers['x-auth-user-id'] = userId;
-        }
+        // Create simplified data for the direct API with proper formatting
+        const simplifiedData = {
+          userId: userId,
+          species: data.species,
+          size: data.size.toString(),
+          weight: data.weight ? data.weight.toString() : null,
+          lakeName: data.lakeName || null,
+          lure: data.lure || null,
+          depth: data.depth ? data.depth.toString() : null,
+          temperature: data.temperature ? data.temperature.toString() : null,
+          latitude: data.latitude || null,
+          longitude: data.longitude || null,
+          comments: data.comments || null,
+          photos: [],  // Prepare empty photos array
+          weatherData: weatherData || null,
+          catchDate: new Date().toISOString()
+        };
         
-        // Send directly to API with FormData format and custom headers
-        const response = await fetch('/api/catches', {
+        // Send to the simplified direct API endpoint
+        const response = await fetch('/api/direct-catch/create', {
           method: 'POST',
-          headers,
-          body: formData,
-          credentials: 'include'
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(simplifiedData)
         });
         
         if (!response.ok) {
+          const errorData = await response.json().catch(() => null);
+          console.error("Error response:", errorData);
           throw new Error(`Request failed with status ${response.status}`);
         }
         

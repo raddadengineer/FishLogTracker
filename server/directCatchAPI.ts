@@ -1,5 +1,7 @@
 import express from 'express';
 import { storage } from './storage';
+import { z } from 'zod';
+import { insertCatchSchema } from '@shared/schema';
 
 // Create a separate express router for direct catch API access
 export const directCatchRouter = express.Router();
@@ -12,22 +14,35 @@ directCatchRouter.post('/create', async (req, res) => {
     // Extract user ID if provided, otherwise use a default
     const userId = req.body.userId || '32a4819a-ee2b-4e91-aa42-d313eb2214ba';
     
-    // Prepare catch data with required fields
+    // Convert certain data types to match our schema requirements 
     const catchData = {
-      userId,
-      species: req.body.species || 'Largemouth Bass', // Default species if none provided
-      size: (req.body.size || '12').toString(), // Size as string per schema
-      weight: req.body.weight ? req.body.weight.toString() : undefined,
-      lakeName: req.body.lakeName || undefined,
-      latitude: req.body.latitude ? parseFloat(req.body.latitude) : undefined,
-      longitude: req.body.longitude ? parseFloat(req.body.longitude) : undefined,
-      temperature: req.body.temperature ? parseFloat(req.body.temperature) : undefined,
-      depth: req.body.depth ? parseFloat(req.body.depth) : undefined,
-      lure: req.body.lure || undefined,
-      comments: req.body.comments || undefined,
-      catchDate: req.body.catchDate || new Date().toISOString(),
-      verified: false
+      userId: userId,
+      species: req.body.species || 'Largemouth Bass',
+      size: req.body.size?.toString() || '12',
+      photos: req.body.photos || [],
+      lakeName: req.body.lakeName || null,
+      lakeId: req.body.lakeId || null,
+      latitude: req.body.latitude ? Number(req.body.latitude) : null,
+      longitude: req.body.longitude ? Number(req.body.longitude) : null,
+      temperature: req.body.temperature?.toString() || null,
+      depth: req.body.depth?.toString() || null,
+      weight: req.body.weight?.toString() || null,
+      lure: req.body.lure || null,
+      weatherData: req.body.weatherData || null,
+      comments: req.body.comments || null,
+      catchDate: req.body.catchDate ? new Date(req.body.catchDate) : new Date()
     };
+    
+    // Validate with our schema
+    try {
+      insertCatchSchema.parse(catchData);
+    } catch (validationError) {
+      console.error("Validation error:", validationError);
+      return res.status(400).json({ 
+        message: "Invalid catch data format", 
+        errors: validationError
+      });
+    }
     
     console.log("Processed catch data:", catchData);
     
@@ -35,12 +50,13 @@ directCatchRouter.post('/create', async (req, res) => {
     const newCatch = await storage.createCatch(catchData);
     console.log("Catch created successfully:", newCatch);
     
+    // Invalidate any cached queries
     res.status(201).json({
       message: "Catch created successfully!",
       catch: newCatch
     });
   } catch (error) {
     console.error("Error in direct catch API:", error);
-    res.status(500).json({ message: "Failed to create catch" });
+    res.status(500).json({ message: "Failed to create catch", error: String(error) });
   }
 });

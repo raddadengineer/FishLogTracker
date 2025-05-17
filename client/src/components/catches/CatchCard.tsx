@@ -82,14 +82,14 @@ export default function CatchCard({ catchData }: CatchCardProps) {
     <Card className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
       <CardHeader className="p-4 border-b border-gray-100">
         <div className="flex items-center justify-between">
-          <Link href={`/profile/${catchData.user.id}`}>
+          <Link href={`/profile/${catchData.user?.id || catchData.userId}`}>
             <a className="flex items-center space-x-3">
               <Avatar className="w-10 h-10">
-                <AvatarImage src={catchData.user.profileImageUrl} alt={catchData.user.username} />
-                <AvatarFallback>{catchData.user.username.substring(0, 2).toUpperCase()}</AvatarFallback>
+                <AvatarImage src={catchData.user?.profileImageUrl} alt={catchData.user?.username || 'User'} />
+                <AvatarFallback>{(catchData.user?.username || 'User').substring(0, 2).toUpperCase()}</AvatarFallback>
               </Avatar>
               <div>
-                <p className="font-medium text-sm">{catchData.user.username}</p>
+                <p className="font-medium text-sm">{catchData.user?.username || 'Anonymous User'}</p>
                 <p className="text-xs text-gray-500">{timeAgo(catchData.createdAt)}</p>
               </div>
             </a>

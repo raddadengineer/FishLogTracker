@@ -10,17 +10,17 @@ import { eq } from "drizzle-orm";
 // Create a session object and add to request
 export function createSession(req: Request, userId: string, role: string) {
   if (!req.session) {
-    req.session = {};
+    req.session = {} as any;
   }
   
-  req.session.userId = userId;
-  req.session.role = role;
-  req.session.isAuthenticated = true;
+  (req.session as any).userId = userId;
+  (req.session as any).role = role;
+  (req.session as any).isAuthenticated = true;
 }
 
 // Middleware to check if user is authenticated
 export const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
-  if (req.session && req.session.isAuthenticated) {
+  if (req.session && (req.session as any).isAuthenticated) {
     return next();
   }
   return res.status(401).json({ message: "Unauthorized" });
@@ -29,11 +29,11 @@ export const isAuthenticated = (req: Request, res: Response, next: NextFunction)
 // Middleware to check if user is an admin
 export const isAdmin = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    if (!req.session || !req.session.isAuthenticated) {
+    if (!req.session || !(req.session as any).isAuthenticated) {
       return res.status(401).json({ message: "Unauthorized" });
     }
     
-    if (req.session.role !== "admin") {
+    if ((req.session as any).role !== "admin") {
       return res.status(403).json({ message: "Forbidden: Admin access required" });
     }
     
@@ -47,11 +47,11 @@ export const isAdmin = async (req: Request, res: Response, next: NextFunction) =
 // Middleware to check if user is a moderator or admin
 export const isModeratorOrAdmin = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    if (!req.session || !req.session.isAuthenticated) {
+    if (!req.session || !(req.session as any).isAuthenticated) {
       return res.status(401).json({ message: "Unauthorized" });
     }
     
-    if (req.session.role !== "moderator" && req.session.role !== "admin") {
+    if ((req.session as any).role !== "moderator" && (req.session as any).role !== "admin") {
       return res.status(403).json({ message: "Forbidden: Moderator or admin access required" });
     }
     
@@ -179,11 +179,11 @@ export const logout = (req: Request, res: Response) => {
 // Current user handler
 export const getCurrentUser = async (req: Request, res: Response) => {
   try {
-    if (!req.session || !req.session.userId) {
+    if (!req.session || !(req.session as any).userId) {
       return res.status(401).json({ message: "Not authenticated" });
     }
     
-    const userId = req.session.userId;
+    const userId = (req.session as any).userId;
     const user = await storage.getUser(userId);
     
     if (!user) {

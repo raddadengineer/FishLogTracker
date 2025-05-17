@@ -26,7 +26,7 @@ export default function LoginPage() {
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "",
+      username: "",
       password: "",
     },
   });
@@ -50,7 +50,7 @@ export default function LoginPage() {
 
       toast({
         title: "Login successful",
-        description: "Welcome back!",
+        description: "You have been logged in successfully.",
       });
 
       setLocation("/");
@@ -69,9 +69,9 @@ export default function LoginPage() {
     <div className="flex items-center justify-center min-h-[80vh]">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Sign in</CardTitle>
+          <CardTitle className="text-2xl font-bold">Sign in to Fish Tracker</CardTitle>
           <CardDescription>
-            Enter your email and password to access your account
+            Enter your credentials to access your account
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -79,12 +79,12 @@ export default function LoginPage() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
-                name="email"
+                name="username"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>Username</FormLabel>
                     <FormControl>
-                      <Input placeholder="you@example.com" {...field} />
+                      <Input placeholder="yourusername" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -103,6 +103,9 @@ export default function LoginPage() {
                   </FormItem>
                 )}
               />
+              <div className="text-sm text-right">
+                <span className="text-muted-foreground">Default admin: admin/admin</span>
+              </div>
               <Button 
                 type="submit" 
                 className="w-full" 
@@ -119,9 +122,6 @@ export default function LoginPage() {
               </Button>
             </form>
           </Form>
-          <div className="mt-4 text-center text-sm">
-            <p>Admin account: admin@example.com / admin</p>
-          </div>
         </CardContent>
         <CardFooter className="flex justify-center">
           <div className="text-sm text-muted-foreground">

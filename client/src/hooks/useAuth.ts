@@ -6,10 +6,18 @@ export function useAuth() {
   const userId = localStorage.getItem('currentUserId');
   const userName = localStorage.getItem('currentUserName');
   
+  // Create a more complete fallback user object with properties that match our schema
   const localStorageUser = userId && userName ? {
     id: userId,
     username: userName,
-    role: 'user'
+    role: 'user',
+    email: null,
+    firstName: null,
+    lastName: null,
+    bio: null,
+    profileImageUrl: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   } : null;
   
   const { 

@@ -58,8 +58,15 @@ export default function LoginPage() {
       localStorage.setItem('currentUserId', data.user.id);
       localStorage.setItem('currentUserName', data.user.username);
       
-      // Navigate directly to profile with the actual ID
-      window.location.href = `/profile/${data.user.id}`;
+      // Invalidate auth queries to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      
+      // Navigate to home page first, then to profile
+      // This helps reset the app state properly
+      window.location.href = "/";
+      setTimeout(() => {
+        window.location.href = `/profile/${data.user.id}`;
+      }, 500);
     } catch (error) {
       toast({
         title: "Login failed",

@@ -14,7 +14,7 @@ export default function AdminPage() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const [, setLocation] = useLocation();
   const [isAdmin, setIsAdmin] = useState(false);
-  const [adminSetupStatus, setAdminSetupStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [adminSetupStatus, setAdminSetupStatus] = useState<string>('idle');
 
   // Check if current user is admin
   useEffect(() => {
@@ -36,8 +36,11 @@ export default function AdminPage() {
     queryFn: async () => {
       if (!isAdmin) return [];
       try {
-        const response = await apiRequest('/api/admin/users', { method: 'GET' });
-        return response.json();
+        const response = await fetch('/api/admin/users');
+        if (!response.ok) {
+          throw new Error('Failed to fetch users');
+        }
+        return await response.json();
       } catch (error) {
         console.error('Failed to fetch users:', error);
         return [];
@@ -50,7 +53,13 @@ export default function AdminPage() {
   const handleSetupAdmin = async () => {
     setAdminSetupStatus('loading');
     try {
-      const response = await apiRequest('/api/admin/setup', { method: 'POST' });
+      const response = await fetch('/api/admin/setup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
       if (response.ok) {
         setAdminSetupStatus('success');
         // Refetch the current user to update role
@@ -169,7 +178,7 @@ export default function AdminPage() {
             <CardContent>
               <div className="text-3xl font-bold flex items-center gap-2">
                 <UserCheck className="h-6 w-6 text-secondary" />
-                {isUsersLoading ? "..." : users.filter(u => u.role === 'moderator').length}
+                {isUsersLoading ? "..." : users.filter((u: any) => u.role === 'moderator').length}
               </div>
             </CardContent>
           </Card>

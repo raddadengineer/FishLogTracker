@@ -2,6 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 import { getQueryFn } from "@/lib/queryClient";
 
 export function useAuth() {
+  // First check localStorage for fallback user data
+  const localStorageUser = {
+    id: localStorage.getItem('currentUserId'),
+    username: localStorage.getItem('currentUserName')
+  };
+  
   const { 
     data: user, 
     isLoading, 
@@ -14,11 +20,15 @@ export function useAuth() {
       on401: "returnNull"
     }),
   });
+  
+  // Either use the API-returned user or fallback to localStorage data
+  const finalUser = user || (localStorageUser.id ? localStorageUser : null);
+  const isAuthenticated = !!finalUser;
 
   return {
-    user,
+    user: finalUser,
     isLoading,
-    isAuthenticated: !!user,
+    isAuthenticated,
     error,
     isError,
     refetch

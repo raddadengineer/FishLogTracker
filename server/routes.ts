@@ -7,9 +7,17 @@ import { z } from "zod";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { setupAuth, isAuthenticated } from "./replitAuth";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
+import {
+  login,
+  register,
+  logout, 
+  getCurrentUser,
+  isAuthenticated,
+  isAdmin,
+  isModeratorOrAdmin
+} from "./auth";
 
 // Configure multer for file uploads
 const upload = multer({
@@ -38,61 +46,7 @@ const upload = multer({
   },
 });
 
-// Note: isAuthenticated is now imported from replitAuth.ts
-
-// Middleware to check if user is an admin
-const isAdmin = async (req: Request, res: Response, next: Function) => {
-  try {
-    // Get user from session
-    const user = req.user as any;
-    if (!user?.claims?.sub) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-
-    const userId = user.claims.sub;
-    const dbUser = await storage.getUser(userId);
-    if (!dbUser || dbUser.role !== "admin") {
-      return res.status(403).json({ message: "Forbidden: Admin access required" });
-    }
-
-    next();
-  } catch (error) {
-    console.error("Admin authorization error:", error);
-    res.status(500).json({ message: "Server error during authorization check" });
-  }
-};
-
-// Middleware to check if user is a moderator or admin
-const isModeratorOrAdmin = async (req: Request, res: Response, next: Function) => {
-  try {
-    // Get user from session
-    const user = req.user as any;
-    if (!user?.claims?.sub) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-
-    const userId = user.claims.sub;
-    const dbUser = await storage.getUser(userId);
-    if (!dbUser || (dbUser.role !== "moderator" && dbUser.role !== "admin")) {
-      return res.status(403).json({ message: "Forbidden: Moderator or admin access required" });
-    }
-
-    next();
-  } catch (error) {
-    console.error("Moderator/Admin authorization error:", error);
-    res.status(500).json({ message: "Server error during authorization check" });
-  }
-};
-
-import {
-  login,
-  register,
-  logout, 
-  getCurrentUser,
-  isAuthenticated,
-  isAdmin,
-  isModeratorOrAdmin
-} from "./auth";
+// We're now using auth.ts middleware for authentication/authorization
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Serve uploaded files
@@ -116,7 +70,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Admin routes
-  app.get('/api/admin/users', isAuthenticated, isAdmin, async (req: any, res) => {
+  app.get('/api/admin/users', isAuthenticated, isAdmin, async (req, res) => {
     try {
       const allUsers = await db.select().from(usersTable);
       res.json(allUsers);
@@ -126,23 +80,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Admin account creation route (only accessible if no admin exists)
+  // Admin account creation route
   app.post('/api/admin/setup', async (req, res) => {
     try {
       // First check if any admin exists
-      const adminUsers = await db.select().from(usersTable).where(usersTable.role === "admin").limit(1);
+      const adminUsers = await db.select().from(usersTable).where(eq(usersTable.role, "admin")).limit(1);
       
       if (adminUsers.length > 0) {
         return res.status(403).json({ message: "Admin already exists" });
       }
       
       // Get the current user from the session
-      const user = req.user as any;
-      if (!user?.claims?.sub) {
+      const userId = (req.session as any).userId;
+      if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
-      
-      const userId = user.claims.sub;
       
       // Promote the user to admin
       const adminUser = await storage.updateUserRole(userId, "admin");

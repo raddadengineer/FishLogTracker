@@ -13,18 +13,27 @@ export function createSession(req: Request, userId: string, role: string) {
     req.session = {} as any;
   }
   
+  // Set session variables
   (req.session as any).userId = userId;
   (req.session as any).role = role;
   (req.session as any).isAuthenticated = true;
+  
+  console.log("Session created for user:", userId);
+  console.log("Session data:", req.session);
 }
 
 // Middleware to check if user is authenticated
 export const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
+  console.log("Authentication check - Session data:", req.session);
+  
   if (req.session && (req.session as any).isAuthenticated) {
     // Add user ID to request headers for use in routes
     req.headers['user-id'] = (req.session as any).userId;
+    console.log("User authenticated:", (req.session as any).userId);
     return next();
   }
+  
+  console.log("Authentication failed - no valid session");
   return res.status(401).json({ message: "Unauthorized" });
 };
 

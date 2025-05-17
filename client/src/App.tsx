@@ -8,6 +8,7 @@ import Home from "@/pages/home";
 import MapPage from "@/pages/map";
 import ProfilePage from "@/pages/profile";
 import LeaderboardPage from "@/pages/leaderboard";
+import AdminPage from "@/pages/admin";
 import Layout from "@/components/layout/Layout";
 import { useEffect } from "react";
 import { initSyncModule } from "@/lib/localStorageSync";
@@ -34,6 +35,7 @@ function Router() {
         <Route path="/map" component={MapPage} />
         <Route path="/profile/:id?" component={ProfilePage} />
         <Route path="/leaderboard" component={LeaderboardPage} />
+        <Route path="/admin" component={AdminPage} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

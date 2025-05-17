@@ -184,11 +184,16 @@ export default function CatchForm() {
           formData.append('photos', photo);
         });
         
-        // Send to API
-        await apiRequest('POST', '/api/catches', formData);
+        // Send to API with FormData format
+        const response = await apiRequest('POST', '/api/catches', formData);
+        
+        if (!response || response.status === 401) {
+          throw new Error("Not authorized. Please log in first.");
+        }
         
         // Invalidate catches query to refetch the data
         queryClient.invalidateQueries({ queryKey: ['/api/catches'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
         
         toast({
           title: "Success",

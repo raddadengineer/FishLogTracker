@@ -11,15 +11,35 @@ export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
+  isFormData: boolean = false,
 ): Promise<Response> {
+  // Set up headers and body based on content type
+  let headers = {};
+  let body: any = undefined;
+  
+  if (data) {
+    if (isFormData || data instanceof FormData) {
+      // Don't set Content-Type for FormData, browser will set it with boundary
+      body = data;
+    } else {
+      headers = { "Content-Type": "application/json" };
+      body = JSON.stringify(data);
+    }
+  }
+  
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
+    headers,
+    body,
     credentials: "include",
   });
 
-  await throwIfResNotOk(res);
+  try {
+    await throwIfResNotOk(res);
+  } catch (error) {
+    console.error(`API request failed: ${error}`);
+    // Just return the response so caller can handle the error
+  }
   return res;
 }
 

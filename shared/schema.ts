@@ -31,6 +31,7 @@ export const users = pgTable("users", {
   id: varchar("id").primaryKey().notNull(),
   username: varchar("username").notNull().unique(),
   email: varchar("email").unique(),
+  passwordHash: varchar("password_hash").notNull(),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
@@ -187,9 +188,13 @@ export const commentsRelations = relations(comments, ({ one }) => ({
 }));
 
 // Schema validation
-export const upsertUserSchema = createInsertSchema(users).omit({
+export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
   updatedAt: true,
+});
+
+export const upsertUserSchema = insertUserSchema.partial({
+  passwordHash: true
 });
 
 export const insertCatchSchema = createInsertSchema(catches).omit({

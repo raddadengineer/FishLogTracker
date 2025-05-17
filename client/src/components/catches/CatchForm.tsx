@@ -179,16 +179,33 @@ export default function CatchForm() {
           formData.append('weatherData', JSON.stringify(weatherData));
         }
         
+        // Add user ID from localStorage for authentication
+        const userId = localStorage.getItem('currentUserId');
+        if (userId) {
+          formData.append('userId', userId);
+        }
+        
         // Append all photos
         photos.forEach((photo, index) => {
           formData.append('photos', photo);
         });
         
-        // Send to API with FormData format
-        const response = await apiRequest('POST', '/api/catches', formData);
+        // Create custom headers with auth info
+        const headers: Record<string, string> = {};
+        if (userId) {
+          headers['x-auth-user-id'] = userId;
+        }
         
-        if (!response || response.status === 401) {
-          throw new Error("Not authorized. Please log in first.");
+        // Send directly to API with FormData format and custom headers
+        const response = await fetch('/api/catches', {
+          method: 'POST',
+          headers,
+          body: formData,
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Request failed with status ${response.status}`);
         }
         
         // Invalidate catches query to refetch the data

@@ -1,0 +1,87 @@
+
+Build a complete, full-stack web app called Fish Tracker App that is mobile-first, responsive, and works online and offline. The app is designed to help users log, track, and share fishing catches.
+
+Core Requirements
+-----------------
+- Use React (frontend), Node.js + Express (backend), PostgreSQL (database)
+- Fully containerized with Docker and docker-compose
+- Use Leaflet for interactive mapping
+- Include a complete README.md for GitHub
+
+🎣 Catch Logging
+----------------
+- Required fields: species, size
+- Optional fields: lake, lake_id, temperature, jig, depth, comments, date/time
+- Allow multiple photo uploads with gallery view
+- Add voice-to-text for comments (Web Speech API)
+- Support offline mode using localStorage:
+  - Auto-sync when online
+  - Manual sync button
+  - View/edit/delete offline catches
+
+📍 Location & Environmental Capture
+-----------------------------------
+- Auto-detect location via browser GPS
+- Use OpenWeatherMap API to capture:
+  - Weather (temp, wind, humidity)
+  - Moon phase
+  - Tide (where applicable)
+
+🗺️ Maps & Visualization
+------------------------
+- Display catches on an interactive Leaflet map
+- Cluster markers by lake and species
+- Add a heatmap layer to show catch density
+
+📊 Dashboard & Analytics
+------------------------
+- Global feed of recent catches (with likes, comments, photos)
+- Display:
+  - Monthly catch chart
+  - Species breakdown pie chart
+- Export data and charts
+- Quick filters (date, lake, user)
+
+🏆 Leaderboards
+---------------
+- Global and lake-specific leaderboards:
+  - Most catches
+  - Largest catch
+  - Most diverse species
+
+👤 User System
+--------------
+- Optional login (required only for posting)
+- Public profiles:
+  - Username, gear, stats
+  - Catches, photos, followers
+- Allow users to:
+  - Like and comment on catches
+  - Follow other users
+  - View trending users
+
+🧵 Social & Engagement
+----------------------
+- Like button per catch (with count)
+- Comment system (edit/delete own comments)
+- Follow/unfollow system
+- User activity stats
+
+🛠️ Admin & Moderation
+----------------------
+- Role-based access: admin, moderator, guest
+- Admin panel to:
+  - View flagged content
+  - Assign roles
+  - Edit/delete catches
+
+🛠️ Extras
+---------
+- Sync status indicator (Synced, Offline, Syncing)
+- Tagging for offline entries
+- Photo viewer/lightbox
+- Dockerized with:
+  - docker-compose.yml
+  - Dockerfile for backend and frontend
+  - PostgreSQL container
+- Environment variables via .env

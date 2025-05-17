@@ -113,13 +113,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/users/:id", isAuthenticated, async (req, res) => {
     try {
       const userId = req.params.id;
-      const user = await storage.getUser(userId);
+      
+      // For testing and debugging
+      console.log("Fetching user with ID:", userId);
+      console.log("Session user ID:", (req.session as any)?.userId);
+      
+      // If the ID is 'me', use the logged-in user's ID
+      const userIdToFetch = userId === 'me' ? (req.session as any)?.userId : userId;
+      
+      if (!userIdToFetch) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      const user = await storage.getUser(userIdToFetch);
       
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
       
-      res.json(user);
+      // Return user without sensitive information
+      const { passwordHash, ...safeUser } = user;
+      res.json(safeUser);
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });

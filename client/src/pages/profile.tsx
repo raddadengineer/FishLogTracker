@@ -31,8 +31,10 @@ export default function ProfilePage() {
   const [_, navigate] = useLocation();
   const { user: currentUser, isAuthenticated } = useAuth();
   const { toast } = useToast();
-  const userId = params.id || currentUser?.id;
-  const isOwnProfile = currentUser?.id === userId;
+  
+  // Handle special 'me' case or use the URL param or fallback to current user
+  const userId = params.id === 'me' ? currentUser?.id : (params.id || currentUser?.id);
+  const isOwnProfile = currentUser?.id === userId || params.id === 'me';
   const [following, setFollowing] = useState(false);
   const [isLoadingFollow, setIsLoadingFollow] = useState(false);
 

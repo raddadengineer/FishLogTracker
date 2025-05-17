@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
@@ -35,6 +35,18 @@ export default function ProfilePage() {
   // Use URL param, fallback to localStorage, or current user context
   const localUserId = localStorage.getItem('currentUserId');
   const userId = params.id || localUserId || currentUser?.id;
+  
+  // If authentication and user data are ready, show success toast
+  useEffect(() => {
+    if (isAuthenticated && userId) {
+      toast({
+        title: "Welcome to your profile",
+        description: "Your fishing journey dashboard is ready!",
+        variant: "default"
+      });
+    }
+  }, [isAuthenticated, userId]);
+
   const isOwnProfile = (currentUser && currentUser.id === userId) || 
                        (localUserId && localUserId === userId);
   const [following, setFollowing] = useState(false);

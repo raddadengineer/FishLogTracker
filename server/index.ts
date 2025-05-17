@@ -11,9 +11,10 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieSession({
   name: 'fish-tracker-session',
   keys: ['fish-tracker-secret-key'],
-  maxAge: 24 * 60 * 60 * 1000, // 24 hours
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   secure: process.env.NODE_ENV === 'production',
-  httpOnly: true
+  httpOnly: true,
+  sameSite: 'lax' // Allows the cookie to be sent along with requests initiated by third-party websites
 }));
 
 app.use((req, res, next) => {

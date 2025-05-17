@@ -103,9 +103,7 @@ export default function LoginPage() {
                   </FormItem>
                 )}
               />
-              <div className="text-sm text-right">
-                <span className="text-muted-foreground">Default admin: admin@example.com/admin</span>
-              </div>
+
               <Button 
                 type="submit" 
                 className="w-full" 

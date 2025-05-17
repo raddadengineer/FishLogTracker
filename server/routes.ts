@@ -18,6 +18,7 @@ import {
   isAdmin,
   isModeratorOrAdmin
 } from "./auth";
+import { allowPublicAccess } from "./publicRoutes";
 
 // Configure multer for file uploads
 const upload = multer({
@@ -110,7 +111,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User routes - public access for user profiles
-  app.get("/api/users/:id", async (req, res) => {
+  app.get("/api/users/:id", allowPublicAccess, async (req, res) => {
     try {
       const userId = req.params.id;
       
@@ -140,7 +141,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/users/:id/stats", async (req, res) => {
+  app.get("/api/users/:id/stats", allowPublicAccess, async (req, res) => {
     try {
       const userId = req.params.id;
       const stats = await storage.getUserStats(userId);
@@ -151,7 +152,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/users/:id/species", async (req, res) => {
+  app.get("/api/users/:id/species", allowPublicAccess, async (req, res) => {
     try {
       const userId = req.params.id;
       const speciesBreakdown = await storage.getSpeciesBreakdown(userId);
@@ -162,7 +163,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/users/:id/lakes", async (req, res) => {
+  app.get("/api/users/:id/lakes", allowPublicAccess, async (req, res) => {
     try {
       const userId = req.params.id;
       const lakesBreakdown = await storage.getLakesBreakdown(userId);
@@ -289,7 +290,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/catches", async (req, res) => {
+  app.get("/api/catches", allowPublicAccess, async (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 20;
       const offset = parseInt(req.query.offset as string) || 0;
@@ -395,7 +396,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/users/:id/catches", async (req, res) => {
+  app.get("/api/users/:id/catches", allowPublicAccess, async (req, res) => {
     try {
       const userId = req.params.id;
       const limit = parseInt(req.query.limit as string) || 10;
@@ -446,7 +447,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/lakes", async (req, res) => {
+  app.get("/api/lakes", allowPublicAccess, async (req, res) => {
     try {
       const lakes = await storage.getAllLakes();
       res.json(lakes);

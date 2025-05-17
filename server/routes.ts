@@ -137,7 +137,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/admin/setup', async (req, res) => {
     try {
       // First check if any admin exists
-      const adminUsers = await db.select().from(users).where(eq(users.role, "admin")).limit(1);
+      const adminUsers = await db.select().from(usersTable).where(usersTable.role === "admin").limit(1);
       
       if (adminUsers.length > 0) {
         return res.status(403).json({ message: "Admin already exists" });

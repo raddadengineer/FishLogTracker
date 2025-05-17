@@ -26,7 +26,7 @@ export default function LoginPage() {
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: "",
+      email: "",
       password: "",
     },
   });
@@ -79,12 +79,12 @@ export default function LoginPage() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
-                name="username"
+                name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Username</FormLabel>
+                    <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="yourusername" {...field} />
+                      <Input placeholder="you@example.com" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -104,7 +104,7 @@ export default function LoginPage() {
                 )}
               />
               <div className="text-sm text-right">
-                <span className="text-muted-foreground">Default admin: admin/admin</span>
+                <span className="text-muted-foreground">Default admin: admin@example.com/admin</span>
               </div>
               <Button 
                 type="submit" 

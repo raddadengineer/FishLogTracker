@@ -9,6 +9,8 @@ import MapPage from "@/pages/map";
 import ProfilePage from "@/pages/profile";
 import LeaderboardPage from "@/pages/leaderboard";
 import AdminPage from "@/pages/admin";
+import LoginPage from "@/pages/login";
+import RegisterPage from "@/pages/register";
 import Layout from "@/components/layout/Layout";
 import { useEffect } from "react";
 import { initSyncModule } from "@/lib/localStorageSync";
@@ -32,6 +34,8 @@ function Router() {
     <Layout>
       <Switch>
         <Route path="/" component={Home} />
+        <Route path="/login" component={LoginPage} />
+        <Route path="/register" component={RegisterPage} />
         <Route path="/map" component={MapPage} />
         <Route path="/profile/:id?" component={ProfilePage} />
         <Route path="/leaderboard" component={LeaderboardPage} />

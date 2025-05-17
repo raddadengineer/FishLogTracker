@@ -54,14 +54,12 @@ export default function LoginPage() {
         description: "You have been logged in successfully.",
       });
 
-      // Refresh auth state
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      // Store user info directly in localStorage for immediate use
+      localStorage.setItem('currentUserId', data.user.id);
+      localStorage.setItem('currentUserName', data.user.username);
       
-      // Navigate to profile
-      setTimeout(() => {
-        // Use 'me' to access the current user profile
-        window.location.href = `/profile/me`;
-      }, 300);
+      // Navigate directly to profile with the actual ID
+      window.location.href = `/profile/${data.user.id}`;
     } catch (error) {
       toast({
         title: "Login failed",

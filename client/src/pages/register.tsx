@@ -60,8 +60,12 @@ export default function RegisterPage() {
         description: "Your account has been created. You are now logged in.",
       });
 
-      // Redirect to user's profile page after successful registration
-      setLocation(`/profile/${data.user.id}`);
+      // Store user info directly in localStorage for immediate use
+      localStorage.setItem('currentUserId', data.user.id);
+      localStorage.setItem('currentUserName', data.user.username);
+      
+      // Navigate directly to profile page
+      window.location.href = `/profile/${data.user.id}`;
     } catch (error) {
       toast({
         title: "Registration failed",

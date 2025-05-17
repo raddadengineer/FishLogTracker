@@ -1,20 +1,25 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import cookieSession from "cookie-session";
+import session from "express-session";
+import { v4 as uuidv4 } from "uuid";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // Set up session middleware
-app.use(cookieSession({
-  name: 'fish-tracker-session',
-  keys: ['fish-tracker-secret-key'],
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-  secure: false, // Changed from NODE_ENV check to allow all environments
-  httpOnly: true,
-  sameSite: 'lax' // Allows the cookie to be sent along with requests initiated by third-party websites
+app.use(session({
+  secret: 'fish-tracker-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    secure: false,
+    httpOnly: true,
+    sameSite: 'lax'
+  },
+  genid: () => uuidv4() // Use UUID for session IDs
 }));
 
 app.use((req, res, next) => {

@@ -3,18 +3,27 @@ import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { getFishSpeciesById } from "@/lib/fishSpecies";
+import { formatDate, formatSize, formatWeight, formatTemperature, formatDepth } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import CatchCard from "@/components/catches/CatchCard";
 import StatCard from "@/components/dashboard/StatCard";
 import SpeciesChart from "@/components/dashboard/SpeciesChart";
 import { useToast } from "@/hooks/use-toast";
-import { Check, Edit, Fish, Map, Award, Users, Settings, Calendar, Plus, UserPlus, Loader2 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { 
+  Check, Edit, Fish, Map, Award, Users, Settings, Calendar, Plus, 
+  UserPlus, Loader2, ThermometerIcon, DropletIcon, Ruler, Scale,
+  MapPin, CloudIcon, Wind, Compass, MoonIcon, X, Trophy
+} from "lucide-react";
+import { 
+  Dialog, DialogContent, DialogHeader, DialogTitle, 
+  DialogTrigger, DialogFooter, DialogClose 
+} from "@/components/ui/dialog";
 import CatchForm from "@/components/catches/CatchForm";
 
 export default function ProfilePage() {
@@ -71,6 +80,10 @@ export default function ProfilePage() {
       count: item.count,
       percentage: (item.count / (stats?.totalCatches || 1)) * 100
     })) : [];
+    
+  // Selected catch for detail view
+  const [selectedCatchId, setSelectedCatchId] = useState<number | null>(null);
+  const selectedCatch = catches?.find((c: any) => c.id === selectedCatchId);
 
   // Handle follow/unfollow action
   const handleFollowAction = async () => {
@@ -147,6 +160,165 @@ export default function ProfilePage() {
 
   return (
     <>
+      {/* Catch Detail Dialog */}
+      {selectedCatch && (
+        <Dialog open={!!selectedCatchId} onOpenChange={() => setSelectedCatchId(null)}>
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center">
+                <span className="mr-2">{selectedCatch.species}</span>
+                {selectedCatch.isVerified && (
+                  <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">
+                    <Check className="h-3 w-3 mr-1" />
+                    Verified
+                  </Badge>
+                )}
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Left column - Photos */}
+              <div>
+                {selectedCatch.photos && selectedCatch.photos.length > 0 ? (
+                  <div className="rounded-lg overflow-hidden bg-gray-100 h-64 relative">
+                    <img 
+                      src={selectedCatch.photos[0]} 
+                      alt={selectedCatch.species} 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="rounded-lg bg-gray-100 h-64 flex items-center justify-center">
+                    <Fish className="h-16 w-16 text-gray-300" />
+                  </div>
+                )}
+              </div>
+              
+              {/* Right column - Details */}
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <div className="text-sm text-gray-500 mb-1 flex items-center">
+                      <Ruler className="h-3 w-3 mr-1" />
+                      Size
+                    </div>
+                    <div className="font-medium">{formatSize(selectedCatch.size)}</div>
+                  </div>
+                  
+                  {selectedCatch.weight && (
+                    <div className="bg-gray-50 p-3 rounded-lg">
+                      <div className="text-sm text-gray-500 mb-1 flex items-center">
+                        <Scale className="h-3 w-3 mr-1" />
+                        Weight
+                      </div>
+                      <div className="font-medium">{formatWeight(selectedCatch.weight)}</div>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <div className="text-sm text-gray-500 mb-1 flex items-center">
+                    <MapPin className="h-3 w-3 mr-1" />
+                    Location
+                  </div>
+                  <div className="font-medium">
+                    {selectedCatch.lakeName || 'Unknown location'}
+                    {selectedCatch.latitude && selectedCatch.longitude && (
+                      <Button 
+                        size="sm" 
+                        variant="link" 
+                        className="px-0 h-auto text-xs text-primary"
+                        onClick={() => navigate(`/map?lat=${selectedCatch.latitude}&lng=${selectedCatch.longitude}`)}
+                      >
+                        View on map
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                
+                {selectedCatch.lure && (
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <div className="text-sm text-gray-500 mb-1">Bait/Lure</div>
+                    <div className="font-medium">{selectedCatch.lure}</div>
+                  </div>
+                )}
+                
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <div className="text-sm text-gray-500 mb-1 flex items-center">
+                    <Calendar className="h-3 w-3 mr-1" />
+                    Date & Time
+                  </div>
+                  <div className="font-medium">{formatDate(selectedCatch.catchDate)}</div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Bottom section - Additional details */}
+            <div className="mt-4 space-y-4">
+              {/* Weather information if available */}
+              {selectedCatch.weatherData && (
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <h4 className="text-sm font-medium mb-2">Weather Conditions</h4>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="flex items-center">
+                      <CloudIcon className="h-3 w-3 mr-1 text-gray-500" />
+                      <span>{selectedCatch.weatherData.weather}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <ThermometerIcon className="h-3 w-3 mr-1 text-gray-500" />
+                      <span>{selectedCatch.weatherData.temperature}°F</span>
+                    </div>
+                    <div className="flex items-center">
+                      <Wind className="h-3 w-3 mr-1 text-gray-500" />
+                      <span>{selectedCatch.weatherData.windSpeed} mph</span>
+                    </div>
+                    <div className="flex items-center">
+                      <Compass className="h-3 w-3 mr-1 text-gray-500" />
+                      <span>{selectedCatch.weatherData.windDirection}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Water conditions */}
+              {(selectedCatch.temperature || selectedCatch.depth) && (
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <h4 className="text-sm font-medium mb-2">Water Conditions</h4>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    {selectedCatch.temperature && (
+                      <div className="flex items-center">
+                        <ThermometerIcon className="h-3 w-3 mr-1 text-gray-500" />
+                        <span>Water Temp: {formatTemperature(selectedCatch.temperature)}</span>
+                      </div>
+                    )}
+                    {selectedCatch.depth && (
+                      <div className="flex items-center">
+                        <DropletIcon className="h-3 w-3 mr-1 text-gray-500" />
+                        <span>Depth: {formatDepth(selectedCatch.depth)}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {/* Comments */}
+              {selectedCatch.comments && (
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <h4 className="text-sm font-medium mb-1">Comments</h4>
+                  <p className="text-sm text-gray-700">{selectedCatch.comments}</p>
+                </div>
+              )}
+            </div>
+            
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline">Close</Button>
+              </DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+      
       {/* Profile header */}
       <section className="mb-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
@@ -272,7 +444,9 @@ export default function ProfilePage() {
             ) : catches && catches.length > 0 ? (
               <div className="space-y-4">
                 {catches.map((catchItem: any) => (
-                  <CatchCard key={catchItem.id} catchData={catchItem} />
+                  <div key={catchItem.id} onClick={() => setSelectedCatchId(catchItem.id)}>
+                    <CatchCard catchData={catchItem} />
+                  </div>
                 ))}
               </div>
             ) : (

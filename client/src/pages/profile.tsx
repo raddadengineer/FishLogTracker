@@ -100,12 +100,21 @@ export default function ProfilePage() {
   });
 
   // Format data for species chart
-  const formattedSpeciesData = speciesBreakdown ? 
-    speciesBreakdown.map((item: any) => ({
+  const formattedSpeciesData = React.useMemo(() => {
+    // Check if data exists and has the expected structure
+    if (!speciesBreakdown) return [];
+    
+    // Handle different API response formats
+    const countsArray = Array.isArray(speciesBreakdown) 
+      ? speciesBreakdown // Direct array format
+      : speciesBreakdown.counts || []; // Object with counts property
+    
+    return countsArray.map((item: any) => ({
       species: item.species,
       count: item.count,
       percentage: (item.count / (stats?.totalCatches || 1)) * 100
-    })) : [];
+    }));
+  }, [speciesBreakdown, stats?.totalCatches]);
     
   // Selected catch for detail view
   const [selectedCatchId, setSelectedCatchId] = useState<number | null>(null);

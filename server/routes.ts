@@ -109,8 +109,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // User routes
-  app.get("/api/users/:id", isAuthenticated, async (req, res) => {
+  // User routes - public access for user profiles
+  app.get("/api/users/:id", async (req, res) => {
     try {
       const userId = req.params.id;
       
@@ -140,7 +140,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/users/:id/stats", isAuthenticated, async (req, res) => {
+  app.get("/api/users/:id/stats", async (req, res) => {
     try {
       const userId = req.params.id;
       const stats = await storage.getUserStats(userId);
@@ -151,7 +151,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/users/:id/species", isAuthenticated, async (req, res) => {
+  app.get("/api/users/:id/species", async (req, res) => {
     try {
       const userId = req.params.id;
       const speciesBreakdown = await storage.getSpeciesBreakdown(userId);
@@ -162,7 +162,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/users/:id/lakes", isAuthenticated, async (req, res) => {
+  app.get("/api/users/:id/lakes", async (req, res) => {
     try {
       const userId = req.params.id;
       const lakesBreakdown = await storage.getLakesBreakdown(userId);
@@ -289,7 +289,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/catches", isAuthenticated, async (req, res) => {
+  app.get("/api/catches", async (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 20;
       const offset = parseInt(req.query.offset as string) || 0;
@@ -395,7 +395,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/users/:id/catches", isAuthenticated, async (req, res) => {
+  app.get("/api/users/:id/catches", async (req, res) => {
     try {
       const userId = req.params.id;
       const limit = parseInt(req.query.limit as string) || 10;
@@ -446,7 +446,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/lakes", isAuthenticated, async (req, res) => {
+  app.get("/api/lakes", async (req, res) => {
     try {
       const lakes = await storage.getAllLakes();
       res.json(lakes);

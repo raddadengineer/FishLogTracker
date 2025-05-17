@@ -53,7 +53,8 @@ export default function LoginPage() {
         description: "You have been logged in successfully.",
       });
 
-      setLocation("/");
+      // Redirect to user's profile page after successful login
+      setLocation(`/profile/${data.user.id}`);
     } catch (error) {
       toast({
         title: "Login failed",

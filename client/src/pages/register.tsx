@@ -60,7 +60,8 @@ export default function RegisterPage() {
         description: "Your account has been created. You are now logged in.",
       });
 
-      setLocation("/");
+      // Redirect to user's profile page after successful registration
+      setLocation(`/profile/${data.user.id}`);
     } catch (error) {
       toast({
         title: "Registration failed",

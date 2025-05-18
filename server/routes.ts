@@ -24,6 +24,9 @@ import { publicCatchRouter } from "./publicCatchRoutes";
 import { userPublicRouter } from "./userPublicRoutes";
 import { leaderboardRouter } from "./leaderboardRoutes";
 
+// Import plain JS direct leaderboard API
+const directLeaderboardRouter = require('./directLeaderboardAPI');
+
 // Configure multer for file uploads
 const upload = multer({
   storage: multer.diskStorage({
@@ -108,6 +111,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // New leaderboard routes - no authentication required
   app.use("/api/leaderboard/v2", leaderboardRouter);
+  
+  // Direct leaderboard routes using plain JavaScript
+  app.use("/api/leaderboard/direct", directLeaderboardRouter);
   
   // Add an endpoint to get all users (for admin page)
   app.get('/api/admin/users', isAuthenticated, isAdmin, async (req, res) => {

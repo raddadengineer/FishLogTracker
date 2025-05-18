@@ -25,8 +25,8 @@ export default function LeaderboardPage() {
   const { data: leaderboard = [], isLoading: isLoadingLeaderboard } = useQuery({
     queryKey: [
       lakeId === 'global' 
-        ? '/api/leaderboard/v2/global' 
-        : `/api/leaderboard/v2/lake/${lakeId}`,
+        ? '/api/leaderboard/direct/global' 
+        : `/api/leaderboard/direct/lake/${lakeId}`,
       { criteria, timeframe }
     ],
     queryFn: async ({ queryKey }) => {
@@ -41,7 +41,7 @@ export default function LeaderboardPage() {
         
         console.log(`Fetching leaderboard from: ${baseUrl}?${params.toString()}`);
         
-        // Use the fetch API directly
+        // Use the fetch API directly to bypass routing issues
         const response = await fetch(`${baseUrl}?${params.toString()}`, {
           method: 'GET',
           headers: {
@@ -54,11 +54,23 @@ export default function LeaderboardPage() {
           throw new Error(`Failed to fetch leaderboard: ${response.status}`);
         }
         
-        // Process the response
-        const data = await response.json();
-        console.log('Leaderboard data received:', data);
+        // Process the response carefully to handle different data formats
+        const text = await response.text();
+        let data = [];
         
-        // Return an empty array if data is not an array
+        try {
+          // Try to parse the response as JSON
+          if (text && text.trim()) {
+            data = JSON.parse(text);
+            console.log('Leaderboard data received:', data);
+          }
+        } catch (parseError) {
+          console.error('Error parsing leaderboard data:', parseError);
+          console.error('Response text (first 200 chars):', text.substring(0, 200));
+          return [];
+        }
+        
+        // Ensure we always return an array
         return Array.isArray(data) ? data : [];
       } catch (error) {
         console.error('Error in leaderboard fetch:', error);
@@ -67,6 +79,7 @@ export default function LeaderboardPage() {
       }
     },
     enabled: true,
+    retry: 1
   });
 
   // Determine what icon to show for each rank

@@ -22,6 +22,7 @@ import { allowPublicAccess } from "./publicRoutes";
 import { directCatchRouter } from "./directCatchAPI";
 import { publicCatchRouter } from "./publicCatchRoutes";
 import { userPublicRouter } from "./userPublicRoutes";
+import { leaderboardRouter } from "./leaderboardRoutes";
 
 // Configure multer for file uploads
 const upload = multer({
@@ -104,6 +105,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Public user routes - no authentication required
   app.use("/api/users", userPublicRouter);
+  
+  // New leaderboard routes - no authentication required
+  app.use("/api/leaderboard/v2", leaderboardRouter);
   
   // Add an endpoint to get all users (for admin page)
   app.get('/api/admin/users', isAuthenticated, isAdmin, async (req, res) => {

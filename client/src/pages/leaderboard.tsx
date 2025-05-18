@@ -25,14 +25,13 @@ export default function LeaderboardPage() {
   const { data: leaderboard = [], isLoading: isLoadingLeaderboard } = useQuery({
     queryKey: [
       lakeId === 'global' 
-        ? '/api/leaderboard' 
-        : `/api/lakes/${lakeId}/leaderboard`,
+        ? '/api/leaderboard/v2/global' 
+        : `/api/leaderboard/v2/lake/${lakeId}`,
       { criteria, timeframe }
     ],
-    // Use axios with the queryClient's apiRequest function
     queryFn: async ({ queryKey }) => {
       try {
-        // Manually build URL with parameters to bypass the default fetch logic
+        // Manually build URL with parameters
         const baseUrl = queryKey[0] as string;
         const params = new URLSearchParams();
         params.append('criteria', criteria);
@@ -40,11 +39,10 @@ export default function LeaderboardPage() {
           params.append('timeframe', timeframe);
         }
         
-        // Direct API fetch that bypasses the client-side routing
-        const fullUrl = `${window.location.origin}${baseUrl}?${params.toString()}`;
-        console.log(`Fetching leaderboard from: ${fullUrl}`);
+        console.log(`Fetching leaderboard from: ${baseUrl}?${params.toString()}`);
         
-        const response = await fetch(fullUrl, {
+        // Use the fetch API directly
+        const response = await fetch(`${baseUrl}?${params.toString()}`, {
           method: 'GET',
           headers: {
             'Accept': 'application/json',
@@ -56,22 +54,18 @@ export default function LeaderboardPage() {
           throw new Error(`Failed to fetch leaderboard: ${response.status}`);
         }
         
-        const text = await response.text();
-        try {
-          // Safely parse the response
-          const data = JSON.parse(text);
-          console.log('Leaderboard data received:', data);
-          return Array.isArray(data) ? data : [];
-        } catch (parseError) {
-          console.error('Error parsing response:', text.substring(0, 200) + '...');
-          return [];
-        }
+        // Process the response
+        const data = await response.json();
+        console.log('Leaderboard data received:', data);
+        
+        // Return an empty array if data is not an array
+        return Array.isArray(data) ? data : [];
       } catch (error) {
         console.error('Error in leaderboard fetch:', error);
+        // Return an empty array on error
         return [];
       }
     },
-    retry: 1,
     enabled: true,
   });
 

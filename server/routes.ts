@@ -341,7 +341,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const limit = parseInt(req.query.limit as string) || 20;
       const offset = parseInt(req.query.offset as string) || 0;
       
+      // Get catches from storage
       const catches = await storage.getAllCatches(limit, offset);
+
+      // If user information isn't available in catches, fetch and add it
+      if (catches && catches.length > 0 && !catches[0].user) {
+        const catchesWithUsers = await Promise.all(catches.map(async (catchItem) => {
+          const user = await storage.getUser(catchItem.userId);
+          return {
+            ...catchItem,
+            user: user ? {
+              id: user.id,
+              username: user.username,
+              firstName: user.firstName,
+              lastName: user.lastName,
+              profileImageUrl: user.profileImageUrl
+            } : null
+          };
+        }));
+        return res.json(catchesWithUsers);
+      }
+      
+      // Otherwise just return the catches as is
       res.json(catches);
     } catch (error) {
       console.error("Error fetching catches:", error);

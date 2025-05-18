@@ -4,13 +4,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Heart, MessageSquare, Check, MapPin, Ruler, Scale, Thermometer, Cloud } from "lucide-react";
+import { Heart, MessageSquare, Check, MapPin, Ruler, Scale, Thermometer, Cloud, Edit } from "lucide-react";
 import { timeAgo, formatSize, formatWeight, formatTemperature } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { getFishSpeciesById } from "@/lib/fishSpecies";
+import { EditCatchDialog } from "./EditCatchDialog";
 
 interface CatchCardProps {
   catchData: {
@@ -47,6 +48,10 @@ export default function CatchCard({ catchData }: CatchCardProps) {
   const { toast } = useToast();
   const [isLiked, setIsLiked] = useState(catchData.isLiked || false);
   const [likesCount, setLikesCount] = useState(catchData.likesCount || 0);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  
+  // Check if the current user is the owner of this catch
+  const isOwner = isAuthenticated && user?.id === (catchData.user?.id || catchData.userId);
 
   const handleLike = async () => {
     if (!isAuthenticated) {
@@ -84,6 +89,15 @@ export default function CatchCard({ catchData }: CatchCardProps) {
 
   return (
     <Card className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+      {/* Edit Catch Dialog */}
+      {isEditDialogOpen && (
+        <EditCatchDialog
+          isOpen={isEditDialogOpen}
+          onClose={() => setIsEditDialogOpen(false)}
+          catchData={catchData}
+        />
+      )}
+      
       <CardHeader className="p-4 border-b border-gray-100">
         <div className="flex items-center justify-between">
           <Link href={`/profile/${catchData.user?.id || catchData.userId}`}>
@@ -177,6 +191,18 @@ export default function CatchCard({ catchData }: CatchCardProps) {
                 <span className="text-xs">{catchData.commentsCount || 0}</span>
               </Button>
             </Link>
+            
+            {isOwner && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="flex items-center text-gray-500 hover:text-primary"
+                onClick={() => setIsEditDialogOpen(true)}
+              >
+                <Edit className="h-4 w-4 mr-1" />
+                <span className="text-xs">Edit</span>
+              </Button>
+            )}
           </div>
           
           <div className="flex items-center space-x-1">

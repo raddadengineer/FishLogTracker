@@ -62,6 +62,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/logout", logout);
   app.get("/api/auth/user", getCurrentUser);
   
+  // Add profile update endpoint
+  app.patch('/api/user/profile', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const { firstName, lastName, bio, profileImageUrl } = req.body;
+      
+      // Get current user to preserve username
+      const currentUser = await storage.getUser(userId);
+      if (!currentUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Update user profile
+      const updatedUser = await storage.upsertUser({
+        id: userId,
+        username: currentUser.username, // Keep the existing username
+        firstName,
+        lastName,
+        bio,
+        profileImageUrl
+      });
+      
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      res.status(500).json({ message: "Failed to update profile" });
+    }
+  });
+  
   // Direct catch API - no authentication required
   app.use("/api/direct-catch", directCatchRouter);
   

@@ -410,8 +410,8 @@ export default function ProfilePage() {
             
             <div className="sm:self-start">
               {isOwnProfile ? (
-                <Button variant="outline" onClick={() => navigate('/settings')}>
-                  <Settings className="h-4 w-4 mr-1" />
+                <Button variant="outline" onClick={() => navigate('/edit-profile')}>
+                  <Edit className="h-4 w-4 mr-1" />
                   Edit Profile
                 </Button>
               ) : (

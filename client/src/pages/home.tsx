@@ -77,7 +77,7 @@ export default function Home() {
       setCatchChange(4); // +4 catches this month compared to last month
       setSpeciesChange(2); // +2 new species this month compared to last month
     } else if (timeframe === 'year') {
-      setCatchChange(8); // +8 catches this year compared to last year 
+      setCatchChange(3); // +3 catches this year compared to last year (changed from 8 to be consistent)
       setSpeciesChange(3); // +3 species this year compared to last year
     } else {
       // All time - no comparison

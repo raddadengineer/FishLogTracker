@@ -845,8 +845,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Weather API
-  app.get("/api/weather", isAuthenticated, async (req, res) => {
+  // Weather API - accessible without authentication
+  app.get("/api/weather", async (req, res) => {
     try {
       const lat = parseFloat(req.query.lat as string);
       const lng = parseFloat(req.query.lng as string);

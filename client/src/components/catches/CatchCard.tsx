@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { getFishSpeciesById } from "@/lib/fishSpecies";
 
 interface CatchCardProps {
   catchData: {
@@ -127,7 +128,9 @@ export default function CatchCard({ catchData }: CatchCardProps) {
         <div className="absolute bottom-0 left-0 right-0 px-4 py-2 bg-gradient-to-t from-black/70 to-transparent">
           <div className="flex justify-between items-end">
             <div>
-              <h3 className="text-white font-semibold">{catchData.species}</h3>
+              <h3 className="text-white font-semibold">
+                {getFishSpeciesById(catchData.species).name}
+              </h3>
               <div className="flex items-center space-x-2">
                 <div className="flex items-center">
                   <Ruler className="text-white/80 h-3 w-3 mr-1" />

@@ -58,6 +58,7 @@ export default function CatchForm({ catchToEdit, onSuccess }: CatchFormProps) {
   const [photos, setPhotos] = useState<File[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isOnline = navigator.onLine;
 

@@ -21,24 +21,24 @@ export default function TabNavigation() {
         <div className="flex justify-between">
           {/* Home Tab */}
           <Link href="/">
-            <a className={cn(
+            <div className={cn(
               "flex flex-col items-center py-3 px-5",
               location === "/" ? "text-primary" : "text-gray-500 hover:text-primary"
             )}>
               <Home className="h-5 w-5" />
               <span className="text-xs mt-0.5">Home</span>
-            </a>
+            </div>
           </Link>
 
           {/* Map Tab */}
           <Link href="/map">
-            <a className={cn(
+            <div className={cn(
               "flex flex-col items-center py-3 px-5",
               location === "/map" ? "text-primary" : "text-gray-500 hover:text-primary"
             )}>
               <Map className="h-5 w-5" />
               <span className="text-xs mt-0.5">Map</span>
-            </a>
+            </div>
           </Link>
 
           {/* Add Catch Button */}
@@ -58,36 +58,36 @@ export default function TabNavigation() {
 
           {/* Leaderboard Tab */}
           <Link href="/leaderboard">
-            <a className={cn(
+            <div className={cn(
               "flex flex-col items-center py-3 px-5",
               location === "/leaderboard" ? "text-primary" : "text-gray-500 hover:text-primary"
             )}>
               <Trophy className="h-5 w-5" />
               <span className="text-xs mt-0.5">Leaderboard</span>
-            </a>
+            </div>
           </Link>
 
           {/* Profile Tab */}
           <Link href="/profile">
-            <a className={cn(
+            <div className={cn(
               "flex flex-col items-center py-3 px-5",
               location.startsWith("/profile") ? "text-primary" : "text-gray-500 hover:text-primary"
             )}>
               <User className="h-5 w-5" />
               <span className="text-xs mt-0.5">Profile</span>
-            </a>
+            </div>
           </Link>
           
           {/* Admin Tab - Only visible to admin users */}
-          {user && user.role === 'admin' && (
+          {user && (user as any).role === 'admin' && (
             <Link href="/admin">
-              <a className={cn(
+              <div className={cn(
                 "flex flex-col items-center py-3 px-5",
                 location.startsWith("/admin") ? "text-primary" : "text-gray-500 hover:text-primary"
               )}>
                 <Shield className="h-5 w-5" />
                 <span className="text-xs mt-0.5">Admin</span>
-              </a>
+              </div>
             </Link>
           )}
         </div>

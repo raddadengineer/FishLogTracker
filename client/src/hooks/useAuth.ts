@@ -12,11 +12,11 @@ export function useAuth() {
     id: userId,
     username: userName,
     role: userRole || 'user',
-    email: null,
-    firstName: null,
-    lastName: null,
-    bio: null,
-    profileImageUrl: null,
+    email: null as string | null,
+    firstName: null as string | null,
+    lastName: null as string | null,
+    bio: null as string | null,
+    profileImageUrl: null as string | null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   } : null;

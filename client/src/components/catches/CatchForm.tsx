@@ -45,7 +45,12 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-export default function CatchForm() {
+interface CatchFormProps {
+  catchToEdit?: any; // The catch data to edit, if provided
+  onSuccess?: () => void; // Optional callback for when form submission succeeds
+}
+
+export default function CatchForm({ catchToEdit, onSuccess }: CatchFormProps) {
   const { toast } = useToast();
   const { location, getLocation, isLoading: isLocationLoading } = useLocation();
   const { weatherData, fetchWeather, isLoading: isWeatherLoading } = useWeather();
@@ -58,7 +63,18 @@ export default function CatchForm() {
   // Form setup
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
+    defaultValues: catchToEdit ? {
+      species: catchToEdit.species,
+      size: parseFloat(catchToEdit.size),
+      weight: catchToEdit.weight ? parseFloat(catchToEdit.weight) : undefined,
+      lakeName: catchToEdit.lakeName || "",
+      lure: catchToEdit.lure || "",
+      depth: catchToEdit.depth ? parseFloat(catchToEdit.depth) : undefined,
+      temperature: catchToEdit.temperature ? parseFloat(catchToEdit.temperature) : undefined,
+      comments: catchToEdit.comments || "",
+      latitude: catchToEdit.latitude || location?.latitude,
+      longitude: catchToEdit.longitude || location?.longitude,
+    } : {
       species: "",
       size: undefined,
       weight: undefined,
@@ -190,7 +206,7 @@ export default function CatchForm() {
           formData.append('photos', photo);
         });
         
-        // Create simplified data for the direct API with proper formatting
+        // Create simplified data with proper formatting
         const simplifiedData = {
           userId: userId,
           species: data.species,
@@ -208,14 +224,27 @@ export default function CatchForm() {
           catchDate: new Date().toISOString()
         };
         
-        // Send to the simplified direct API endpoint
-        const response = await fetch('/api/direct-catch/create', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(simplifiedData)
-        });
+        let response;
+        
+        if (catchToEdit) {
+          // If editing an existing catch, use PUT request
+          response = await fetch(`/api/catches/${catchToEdit.id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(simplifiedData)
+          });
+        } else {
+          // If creating a new catch, use POST request
+          response = await fetch('/api/direct-catch/create', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(simplifiedData)
+          });
+        }
         
         if (!response.ok) {
           const errorData = await response.json().catch(() => null);
@@ -225,13 +254,30 @@ export default function CatchForm() {
         
         // Invalidate catches query to refetch the data
         queryClient.invalidateQueries({ queryKey: ['/api/catches'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/users'] });
         
         toast({
           title: "Success",
-          description: "Your catch has been logged!",
+          description: catchToEdit 
+            ? "Your catch has been updated!" 
+            : "Your catch has been logged!",
         });
+        
+        // Call onSuccess callback if provided
+        if (onSuccess) {
+          onSuccess();
+        }
+        
       } else {
+        if (catchToEdit) {
+          toast({
+            title: "Cannot Edit Offline",
+            description: "You need to be online to edit existing catches.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
         // Store offline and sync later
         const catchData = {
           ...data,
@@ -250,14 +296,18 @@ export default function CatchForm() {
       }
       
       // Reset form
-      form.reset();
-      setPhotos([]);
+      if (!catchToEdit) {
+        form.reset();
+        setPhotos([]);
+      }
       
     } catch (error) {
       console.error('Error saving catch:', error);
       toast({
         title: "Error",
-        description: "Failed to save catch. Please try again.",
+        description: catchToEdit 
+          ? "Failed to update catch. Please try again." 
+          : "Failed to save catch. Please try again.",
         variant: "destructive",
       });
     } finally {

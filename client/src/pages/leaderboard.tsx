@@ -29,31 +29,49 @@ export default function LeaderboardPage() {
         : `/api/lakes/${lakeId}/leaderboard`,
       { criteria, timeframe }
     ],
-    // Pass criteria as query parameter
+    // Use axios with the queryClient's apiRequest function
     queryFn: async ({ queryKey }) => {
       try {
+        // Manually build URL with parameters to bypass the default fetch logic
         const baseUrl = queryKey[0] as string;
         const params = new URLSearchParams();
         params.append('criteria', criteria);
         if (timeframe !== 'all') {
           params.append('timeframe', timeframe);
         }
-        console.log(`Fetching leaderboard from: ${baseUrl}?${params.toString()}`);
-        const res = await fetch(`${baseUrl}?${params.toString()}`);
         
-        if (!res.ok) {
-          console.error('Failed to fetch leaderboard:', res.status, res.statusText);
-          throw new Error('Failed to fetch leaderboard');
+        // Direct API fetch that bypasses the client-side routing
+        const fullUrl = `${window.location.origin}${baseUrl}?${params.toString()}`;
+        console.log(`Fetching leaderboard from: ${fullUrl}`);
+        
+        const response = await fetch(fullUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch leaderboard: ${response.status}`);
         }
         
-        const data = await res.json();
-        console.log('Leaderboard data received:', data);
-        return data;
+        const text = await response.text();
+        try {
+          // Safely parse the response
+          const data = JSON.parse(text);
+          console.log('Leaderboard data received:', data);
+          return Array.isArray(data) ? data : [];
+        } catch (parseError) {
+          console.error('Error parsing response:', text.substring(0, 200) + '...');
+          return [];
+        }
       } catch (error) {
-        console.error('Error fetching leaderboard:', error);
+        console.error('Error in leaderboard fetch:', error);
         return [];
       }
     },
+    retry: 1,
     enabled: true,
   });
 

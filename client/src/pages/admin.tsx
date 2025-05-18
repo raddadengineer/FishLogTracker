@@ -61,10 +61,10 @@ export default function AdminPage() {
   });
 
   // Count unverified catches
-  const unverifiedCatches = allCatches.filter((c) => !c.isVerified);
+  const unverifiedCatches = allCatches.filter((c: any) => !c.isVerified);
   
   // Count moderators
-  const moderators = users.filter((u) => u.role === 'moderator' || u.role === 'admin').length;
+  const moderators = users.filter((u: any) => u.role === 'moderator' || u.role === 'admin').length;
   
   // Setup admin user role change mutation
   const updateUserRoleMutation = useMutation({
@@ -199,7 +199,7 @@ export default function AdminPage() {
   };
 
   // Selected catch details
-  const selectedCatch = allCatches.find(c => c.id === selectedCatchId);
+  const selectedCatch = allCatches.find((c: any) => c.id === selectedCatchId);
 
   // If user is not an admin, show admin setup button
   if (user && user?.role !== 'admin') {
@@ -329,7 +329,7 @@ export default function AdminPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {users.map((user) => (
+                        {users.map((user: any) => (
                           <TableRow key={user.id}>
                             <TableCell className="font-mono text-xs">{user.id.substring(0, 8)}...</TableCell>
                             <TableCell className="font-medium">{user.username}</TableCell>
@@ -416,7 +416,7 @@ export default function AdminPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {allCatches.map((catchItem) => {
+                        {allCatches.map((catchItem: any) => {
                           const speciesInfo = getFishSpeciesById(catchItem.species);
                           return (
                             <TableRow key={catchItem.id}>

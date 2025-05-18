@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import CatchCard from "@/components/catches/CatchCard";
 import StatCard from "@/components/dashboard/StatCard";
 import SpeciesChart from "@/components/dashboard/SpeciesChart";
+import { EditCatchDialog } from "@/components/catches/EditCatchDialog";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Check, Edit, Fish, Map, Award, Users, Settings, Calendar, Plus, 
@@ -32,10 +33,15 @@ export default function ProfilePage() {
   const [_, navigate] = useLocation();
   const { user: currentUser, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
+  const [isEditingCatch, setIsEditingCatch] = useState(false);
+  const [catchToEdit, setCatchToEdit] = useState(null);
   
   // Use URL param, fallback to localStorage, or current user context
   const localUserId = localStorage.getItem('currentUserId');
   const userId = params.id || localUserId || currentUser?.id;
+  
+  // Check if viewing own profile
+  const isCurrentUser = userId === currentUser?.id;
   
   // If authentication and user data are ready, show success toast
   useEffect(() => {
@@ -368,7 +374,22 @@ export default function ProfilePage() {
               )}
             </div>
             
-            <DialogFooter>
+            <DialogFooter className="flex justify-between">
+              <div>
+                {userId === currentUser?.id && (
+                  <Button 
+                    variant="secondary" 
+                    onClick={() => {
+                      setCatchToEdit(selectedCatch);
+                      setIsEditingCatch(true);
+                      setSelectedCatchId(null);
+                    }}
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit Catch
+                  </Button>
+                )}
+              </div>
               <DialogClose asChild>
                 <Button variant="outline">Close</Button>
               </DialogClose>
@@ -646,6 +667,19 @@ export default function ProfilePage() {
           </TabsContent>
         </Tabs>
       </section>
+      {/* Edit Catch Dialog */}
+      {isEditingCatch && catchToEdit && (
+        <EditCatchDialog
+          isOpen={isEditingCatch}
+          onClose={() => {
+            setIsEditingCatch(false);
+            setCatchToEdit(null);
+            // Refresh catches after editing
+            queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}/catches`] });
+          }}
+          catchData={catchToEdit}
+        />
+      )}
     </>
   );
 }

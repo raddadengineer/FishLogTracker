@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "@/hooks/useLocation";
 import { Tag, HomeIcon } from "lucide-react";
+import { getFishSpeciesById } from "@/lib/fishSpecies";
 import { Loader2 } from "lucide-react";
 
 // Dynamically import Leaflet components to avoid SSR issues
@@ -130,16 +131,20 @@ export default function LeafletMap({
           iconAnchor: [16, 16]
         });
         
+        // Get proper fish species name 
+        const fishSpecies = getFishSpeciesById(catchItem.species);
+        const speciesName = fishSpecies ? fishSpecies.name : catchItem.species;
+        
         // Create marker
         const marker = L.marker([catchItem.latitude, catchItem.longitude], { 
           icon: customIcon,
-          title: `${catchItem.species} (${catchItem.size}in)`
+          title: `${speciesName} (${catchItem.size}in)`
         });
         
         // Add popup
         marker.bindPopup(`
           <div class="catch-popup">
-            <h4 class="font-medium">${catchItem.species}</h4>
+            <h4 class="font-medium">${speciesName}</h4>
             <p class="text-sm">${catchItem.size}in caught by ${catchItem.username}</p>
             ${catchItem.lakeName ? `<p class="text-sm text-gray-600">${catchItem.lakeName}</p>` : ''}
             <button class="view-catch-btn mt-2 bg-primary text-white text-xs px-2 py-1 rounded">View Details</button>

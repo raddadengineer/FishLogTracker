@@ -28,12 +28,16 @@ export default function Home() {
   const { data: userStats, isLoading: isLoadingStats } = useQuery({
     queryKey: ['/api/users', user?.id, 'stats'],
     enabled: isAuthenticated && !!user?.id,
+    refetchOnWindowFocus: false,
+    staleTime: 30000 // Reduce refetching frequency
   });
 
   // Fetch species breakdown if authenticated
   const { data: speciesBreakdown, isLoading: isLoadingSpecies } = useQuery({
     queryKey: ['/api/users', user?.id, 'species'],
     enabled: isAuthenticated && !!user?.id,
+    refetchOnWindowFocus: false,
+    staleTime: 30000 // Reduce refetching frequency
   });
 
   // Fetch popular lakes

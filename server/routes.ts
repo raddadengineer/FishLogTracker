@@ -23,6 +23,7 @@ import { directCatchRouter } from "./directCatchAPI";
 import { publicCatchRouter } from "./publicCatchRoutes";
 import { userPublicRouter } from "./userPublicRoutes";
 import { leaderboardRouter } from "./leaderboardRoutes";
+import { adminRouter } from "./adminRoutes";
 
 // Create a router for direct leaderboard API
 import { Router } from 'express';

@@ -42,17 +42,26 @@ export default function Home() {
     enabled: true,
   });
 
+  // Create safe stat objects with default values for when not logged in
+  const safeStats = {
+    totalCatches: userStats && typeof userStats === 'object' && 'totalCatches' in userStats 
+      ? userStats.totalCatches
+      : 0,
+    uniqueSpecies: userStats && typeof userStats === 'object' && 'uniqueSpecies' in userStats 
+      ? userStats.uniqueSpecies
+      : 0,
+    totalLikes: userStats && typeof userStats === 'object' && 'totalLikes' in userStats 
+      ? userStats.totalLikes
+      : 0
+  };
+  
   // Format species data for chart
   const formattedSpeciesData = speciesBreakdown && Array.isArray(speciesBreakdown) ? 
     speciesBreakdown.map((item: any) => ({
       species: item.species,
       count: Number(item.count),
-      percentage: (Number(item.count) / (userStats?.totalCatches || 1)) * 100
+      percentage: (Number(item.count) / (safeStats.totalCatches || 1)) * 100
     })) : [];
-    
-  // For debugging - log what data we're receiving
-  console.log("User stats:", userStats);
-  console.log("Species breakdown:", speciesBreakdown);
 
   // Format popular lakes for chips
   const popularLakes = lakes ? 
@@ -209,7 +218,7 @@ export default function Home() {
           <div className="grid grid-cols-2 gap-3 mb-4">
             <StatCard
               title="Total Catches"
-              value={isLoadingStats ? "..." : userStats?.totalCatches || 0}
+              value={isLoadingStats ? "..." : safeStats.totalCatches}
               icon={<Fish className="h-5 w-5 text-primary" />}
               change="+8 from last month"
               isPositive={true}
@@ -217,7 +226,7 @@ export default function Home() {
             
             <StatCard
               title="Species Caught"
-              value={isLoadingStats ? "..." : userStats?.uniqueSpecies || 0}
+              value={isLoadingStats ? "..." : safeStats.uniqueSpecies}
               icon={<ActivitySquare className="h-5 w-5 text-secondary" />}
               iconBgClass="bg-secondary/10"
               change="+2 from last month"

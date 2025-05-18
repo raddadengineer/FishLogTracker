@@ -438,43 +438,110 @@ export default function CatchForm({ catchToEdit, onSuccess }: CatchFormProps) {
         </div>
 
         {/* Location */}
-        <FormField
-          control={form.control}
-          name="lakeName"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Location</FormLabel>
-              <div className="relative">
-                <FormControl>
-                  <Input 
-                    type="text" 
-                    placeholder="Where did you catch it?"
-                    className="pl-9"
-                    {...field} 
-                  />
-                </FormControl>
-                <div className="absolute top-0 left-0 h-full flex items-center pl-3">
-                  <MapPin className="h-4 w-4 text-gray-400" />
+        <div className="space-y-4">
+          <FormField
+            control={form.control}
+            name="lakeName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Location</FormLabel>
+                <div className="relative">
+                  <FormControl>
+                    <Input 
+                      type="text" 
+                      placeholder="Where did you catch it?"
+                      className="pl-9"
+                      {...field} 
+                    />
+                  </FormControl>
+                  <div className="absolute top-0 left-0 h-full flex items-center pl-3">
+                    <MapPin className="h-4 w-4 text-gray-400" />
+                  </div>
                 </div>
-                <Button 
-                  type="button" 
-                  variant="ghost" 
-                  size="icon"
-                  className="absolute top-0 right-0 h-full pr-3 text-primary"
-                  onClick={handleGetLocation}
-                  disabled={isLocationLoading}
-                >
-                  {isLocationLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <i className="ri-gps-line h-4 w-4"></i>
-                  )}
-                </Button>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          {/* GPS Coordinates Section */}
+          <div className="flex flex-col space-y-2">
+            <div className="flex justify-between items-center">
+              <FormLabel className="text-sm">GPS Coordinates</FormLabel>
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm"
+                className="h-8 text-xs flex items-center gap-1"
+                onClick={handleGetLocation}
+                disabled={isLocationLoading}
+              >
+                {isLocationLoading ? (
+                  <>
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Getting location...
+                  </>
+                ) : (
+                  <>
+                    <i className="ri-gps-line text-sm"></i>
+                    Get My Location
+                  </>
+                )}
+              </Button>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <FormField
+                control={form.control}
+                name="latitude"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="relative">
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          placeholder="Latitude"
+                          className="text-sm"
+                          {...field}
+                          value={field.value || ""}
+                          onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                        />
+                      </FormControl>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="longitude"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="relative">
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          placeholder="Longitude"
+                          className="text-sm"
+                          {...field}
+                          value={field.value || ""}
+                          onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                        />
+                      </FormControl>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            {/* Show location status */}
+            {form.getValues("latitude") && form.getValues("longitude") && (
+              <div className="text-xs text-green-600 flex items-center">
+                <i className="ri-checkbox-circle-line mr-1"></i>
+                GPS coordinates set
               </div>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            )}
+          </div>
+        </div>
 
         {/* Date and time */}
         <div className="grid grid-cols-2 gap-3">

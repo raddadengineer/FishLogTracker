@@ -260,13 +260,16 @@ export default function CatchForm({ catchToEdit, onSuccess }: CatchFormProps) {
         let response;
         
         if (catchToEdit) {
-          // For edit, try the authenticated API first
-          response = await fetch(`/api/catches/${catchToEdit.id}`, {
-            method: 'PUT',
+          // For edit, use the direct API that doesn't require authentication
+          response = await fetch('/api/direct-catch/update', {
+            method: 'POST',
             headers: {
               'Content-Type': 'application/json'
             },
-            body: JSON.stringify(simplifiedData)
+            body: JSON.stringify({
+              ...simplifiedData,
+              id: catchToEdit.id // Include catch ID for the update
+            })
           });
         } else {
           // If creating a new catch, use direct-catch API

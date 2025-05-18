@@ -31,6 +31,8 @@ export function useAuth() {
     queryFn: getQueryFn({ 
       on401: "returnNull"
     }),
+    staleTime: 60000, // Cache user data for 1 minute
+    refetchOnWindowFocus: false,
   });
   
   // Either use the API-returned user or fallback to localStorage data

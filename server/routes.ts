@@ -683,7 +683,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Leaderboard routes
-  app.get("/api/leaderboard", async (req, res) => {
+  app.get("/api/leaderboard", allowPublicAccess, async (req, res) => {
     try {
       const criteria = (req.query.criteria as string) || 'catches';
       const limit = parseInt(req.query.limit as string) || 10;
@@ -693,7 +693,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const leaderboard = await storage.getGlobalLeaderboard(criteria as 'catches' | 'species' | 'size', limit);
-      res.json(leaderboard);
+      console.log('Leaderboard data for criteria:', criteria, JSON.stringify(leaderboard));
+      
+      // Always return a valid array, even if empty
+      res.json(leaderboard || []);
     } catch (error) {
       console.error("Error fetching leaderboard:", error);
       res.status(500).json({ message: "Failed to fetch leaderboard" });

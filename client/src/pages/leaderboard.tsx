@@ -31,15 +31,28 @@ export default function LeaderboardPage() {
     ],
     // Pass criteria as query parameter
     queryFn: async ({ queryKey }) => {
-      const baseUrl = queryKey[0] as string;
-      const params = new URLSearchParams();
-      params.append('criteria', criteria);
-      if (timeframe !== 'all') {
-        params.append('timeframe', timeframe);
+      try {
+        const baseUrl = queryKey[0] as string;
+        const params = new URLSearchParams();
+        params.append('criteria', criteria);
+        if (timeframe !== 'all') {
+          params.append('timeframe', timeframe);
+        }
+        console.log(`Fetching leaderboard from: ${baseUrl}?${params.toString()}`);
+        const res = await fetch(`${baseUrl}?${params.toString()}`);
+        
+        if (!res.ok) {
+          console.error('Failed to fetch leaderboard:', res.status, res.statusText);
+          throw new Error('Failed to fetch leaderboard');
+        }
+        
+        const data = await res.json();
+        console.log('Leaderboard data received:', data);
+        return data;
+      } catch (error) {
+        console.error('Error fetching leaderboard:', error);
+        return [];
       }
-      const res = await fetch(`${baseUrl}?${params.toString()}`);
-      if (!res.ok) throw new Error('Failed to fetch leaderboard');
-      return res.json();
     },
     enabled: true,
   });

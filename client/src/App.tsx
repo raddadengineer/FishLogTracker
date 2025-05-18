@@ -17,6 +17,7 @@ import SettingsPage from "@/pages/settings";
 import Layout from "@/components/layout/Layout";
 import { useEffect } from "react";
 import { initSyncModule } from "@/lib/localStorageSync";
+import { SettingsProvider } from "@/hooks/useSettings";
 
 // Register service worker
 function registerServiceWorker() {
@@ -64,8 +65,10 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Router />
+        <SettingsProvider>
+          <Toaster />
+          <Router />
+        </SettingsProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

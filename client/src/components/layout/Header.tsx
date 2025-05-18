@@ -124,6 +124,7 @@ export default function Header() {
                             // Clear localStorage auth data
                             localStorage.removeItem('currentUserId');
                             localStorage.removeItem('currentUserName');
+                            localStorage.removeItem('currentUserRole');
                             
                             // Log out from server session
                             await fetch("/api/auth/logout", { method: "POST" });

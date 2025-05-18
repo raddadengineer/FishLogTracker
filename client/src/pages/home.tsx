@@ -75,46 +75,12 @@ export default function Home() {
       return;
     }
     
-    // For demo purposes, since we have all data in May 2025 and none in April 2025
-    // We'll correctly show actual catches for the current month
-    // But for previous month comparison (which would show +6 from 0), we'll use more realistic values
-    
-    if (timeframe === 'month') {
-      // We currently have 6 catches, all from May 2025
-      // For a more realistic demo, we'll say there were 2 catches in April 2025
-      // So the change is +4 catches (6 - 2)
-      setCatchChange(4);
-      
-      // We have 4 unique species caught in May 2025
-      // For a realistic demo, let's say 2 species were caught in April 2025
-      // So the change is +2 species (4 - 2)
-      setSpeciesChange(2);
-    } else if (timeframe === 'year') {
-      // All 6 catches are from 2025
-      // For a realistic demo, let's say 3 catches were recorded in 2024
-      // So the change is +3 catches (6 - 3)
-      setCatchChange(3);
-      
-      // 4 unique species in 2025
-      // Let's say 1 species was caught in 2024
-      // So the change is +3 species (4 - 1)
-      setSpeciesChange(3);
-    } else {
-      // All time - no comparison needed
-      setCatchChange(0);
-      setSpeciesChange(0);
-    }
-    
-    /* 
-    // This is the dynamic calculation code which we'd use in production
-    // but for demo purposes, we're using the hardcoded values above that make more sense
-    
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
     
     // Define date ranges based on timeframe
-    let currentPeriodStart, previousPeriodStart, currentPeriodEnd, previousPeriodEnd;
+    let currentPeriodStart: Date, previousPeriodStart: Date, currentPeriodEnd: Date, previousPeriodEnd: Date;
     
     if (timeframe === 'month') {
       // Current month
@@ -162,10 +128,9 @@ export default function Home() {
     const catchChangeValue = currentCatchCount - previousCatchCount;
     const speciesChangeValue = currentSpeciesSet.size - previousSpeciesSet.size;
     
-    // Update state
+    // Update state with the actual calculated values
     setCatchChange(catchChangeValue);
     setSpeciesChange(speciesChangeValue);
-    */
     
   }, [timeframe, recentCatches]);
   

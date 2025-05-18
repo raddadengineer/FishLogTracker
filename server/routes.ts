@@ -24,8 +24,66 @@ import { publicCatchRouter } from "./publicCatchRoutes";
 import { userPublicRouter } from "./userPublicRoutes";
 import { leaderboardRouter } from "./leaderboardRoutes";
 
-// Import plain JS direct leaderboard API
-const directLeaderboardRouter = require('./directLeaderboardAPI');
+// Create a router for direct leaderboard API
+import { Router } from 'express';
+import { Pool } from '@neondatabase/serverless';
+
+const directLeaderboardRouter = Router();
+
+// Use the database connection
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+// Global leaderboard - most catches
+directLeaderboardRouter.get('/global', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 10;
+    const criteria = req.query.criteria || 'catches';
+    
+    let query = '';
+    
+    if (criteria === 'catches') {
+      query = `
+        SELECT u.id, u.username, u.profile_image_url as "profileImageUrl", COUNT(c.id) as count
+        FROM users u
+        JOIN catches c ON u.id = c.user_id
+        GROUP BY u.id, u.username, u.profile_image_url
+        ORDER BY count DESC
+        LIMIT $1
+      `;
+    } else if (criteria === 'species') {
+      query = `
+        SELECT u.id, u.username, u.profile_image_url as "profileImageUrl", COUNT(DISTINCT c.species) as count
+        FROM users u
+        JOIN catches c ON u.id = c.user_id
+        GROUP BY u.id, u.username, u.profile_image_url
+        ORDER BY count DESC
+        LIMIT $1
+      `;
+    } else if (criteria === 'size') {
+      query = `
+        SELECT 
+          u.id, 
+          u.username, 
+          u.profile_image_url as "profileImageUrl", 
+          c.species, 
+          c.size,
+          c.weight,
+          c.catch_date as "catchDate"
+        FROM users u
+        JOIN catches c ON u.id = c.user_id
+        WHERE c.size IS NOT NULL
+        ORDER BY c.size DESC
+        LIMIT $1
+      `;
+    }
+    
+    const result = await pool.query(query, [limit]);
+    res.json(result.rows || []);
+  } catch (error) {
+    console.error('Error fetching leaderboard:', error);
+    res.status(500).json({ error: 'Failed to fetch leaderboard data' });
+  }
+});
 
 // Configure multer for file uploads
 const upload = multer({

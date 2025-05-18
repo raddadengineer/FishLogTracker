@@ -49,6 +49,10 @@ export default function Home() {
       count: Number(item.count),
       percentage: (Number(item.count) / (userStats?.totalCatches || 1)) * 100
     })) : [];
+    
+  // For debugging - log what data we're receiving
+  console.log("User stats:", userStats);
+  console.log("Species breakdown:", speciesBreakdown);
 
   // Format popular lakes for chips
   const popularLakes = lakes ? 

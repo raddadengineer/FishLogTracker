@@ -482,27 +482,73 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getSpeciesBreakdown(userId: string): Promise<{ species: string; count: number }[]> {
-    const speciesBreakdown = await db.execute(sql`
-      SELECT species, COUNT(*) as count
-      FROM catches
-      WHERE user_id = ${userId}
-      GROUP BY species
-      ORDER BY count DESC
-    `);
+    // If we have no catches for this user, return an empty array
+    // Get the user's catches count first to check if they have any catches
+    const [catchesCount] = await db
+      .select({ count: count() })
+      .from(catches)
+      .where(eq(catches.userId, userId));
     
-    return speciesBreakdown as { species: string; count: number }[];
+    // If the user has no catches, return an empty array
+    if (!catchesCount || catchesCount.count === 0) {
+      return [];
+    }
+    
+    try {
+      const result = await db.execute(sql`
+        SELECT species, COUNT(*) as count
+        FROM catches
+        WHERE user_id = ${userId}
+        GROUP BY species
+        ORDER BY count DESC
+      `);
+      
+      // Convert the query result into a simple array format that's easier for the client to use
+      const speciesBreakdown = result.rows?.map((row: any) => ({
+        species: row.species,
+        count: Number(row.count)
+      })) || [];
+      
+      return speciesBreakdown;
+    } catch (error) {
+      console.error("Error getting species breakdown:", error);
+      return [];
+    }
   }
 
   async getLakesBreakdown(userId: string): Promise<{ lake: string; count: number }[]> {
-    const lakesBreakdown = await db.execute(sql`
-      SELECT COALESCE(lake_name, 'Unknown Location') as lake, COUNT(*) as count
-      FROM catches
-      WHERE user_id = ${userId}
-      GROUP BY lake
-      ORDER BY count DESC
-    `);
+    // If we have no catches for this user, return an empty array
+    // Get the user's catches count first to check if they have any catches
+    const [catchesCount] = await db
+      .select({ count: count() })
+      .from(catches)
+      .where(eq(catches.userId, userId));
     
-    return lakesBreakdown as { lake: string; count: number }[];
+    // If the user has no catches, return an empty array
+    if (!catchesCount || catchesCount.count === 0) {
+      return [];
+    }
+    
+    try {
+      const result = await db.execute(sql`
+        SELECT COALESCE(lake_name, 'Unknown Location') as lake, COUNT(*) as count
+        FROM catches
+        WHERE user_id = ${userId}
+        GROUP BY lake
+        ORDER BY count DESC
+      `);
+      
+      // Convert the query result into a simple array format that's easier for the client to use
+      const lakesBreakdown = result.rows?.map((row: any) => ({
+        lake: row.lake,
+        count: Number(row.count)
+      })) || [];
+      
+      return lakesBreakdown;
+    } catch (error) {
+      console.error("Error getting lakes breakdown:", error);
+      return [];
+    }
   }
 
   async getGlobalLeaderboard(criteria: 'catches' | 'species' | 'size', limit = 10): Promise<any[]> {

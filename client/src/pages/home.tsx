@@ -43,11 +43,11 @@ export default function Home() {
   });
 
   // Format species data for chart
-  const formattedSpeciesData = speciesBreakdown ? 
-    speciesBreakdown.map(item => ({
+  const formattedSpeciesData = speciesBreakdown && Array.isArray(speciesBreakdown) ? 
+    speciesBreakdown.map((item: any) => ({
       species: item.species,
-      count: item.count,
-      percentage: (item.count / (userStats?.totalCatches || 1)) * 100
+      count: Number(item.count),
+      percentage: (Number(item.count) / (userStats?.totalCatches || 1)) * 100
     })) : [];
 
   // Format popular lakes for chips

@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { Home, Map, Trophy, User, Plus } from "lucide-react";
+import { Home, Map, Trophy, User, Plus, Shield } from "lucide-react";
 import { 
   Dialog, 
   DialogContent, 
@@ -9,9 +9,11 @@ import {
   DialogTrigger 
 } from "@/components/ui/dialog";
 import CatchForm from "@/components/catches/CatchForm";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function TabNavigation() {
   const [location] = useLocation();
+  const { user } = useAuth();
 
   return (
     <nav className="bg-white border-t border-gray-200 fixed bottom-0 left-0 right-0 z-40">
@@ -75,6 +77,19 @@ export default function TabNavigation() {
               <span className="text-xs mt-0.5">Profile</span>
             </a>
           </Link>
+          
+          {/* Admin Tab - Only visible to admin users */}
+          {user && user.role === 'admin' && (
+            <Link href="/admin">
+              <a className={cn(
+                "flex flex-col items-center py-3 px-5",
+                location.startsWith("/admin") ? "text-primary" : "text-gray-500 hover:text-primary"
+              )}>
+                <Shield className="h-5 w-5" />
+                <span className="text-xs mt-0.5">Admin</span>
+              </a>
+            </Link>
+          )}
         </div>
       </div>
     </nav>

@@ -46,17 +46,47 @@ export default function Home() {
     enabled: true,
   });
 
-  // Create safe stat objects with default values for when not logged in
+  // Create safe stat objects with default values for when not logged in or data is still loading
+  // Add direct API call to get user stats when needed
+  const [manualStats, setManualStats] = useState({
+    totalCatches: 0,
+    uniqueSpecies: 0,
+    totalLikes: 0
+  });
+  
+  // If userStats from the query is not available but user is authenticated, try fetching directly
+  useEffect(() => {
+    if (isAuthenticated && user?.id && (!userStats || Object.keys(userStats).length === 0)) {
+      const fetchStats = async () => {
+        try {
+          const response = await fetch(`/api/users/${user.id}/stats`);
+          if (response.ok) {
+            const data = await response.json();
+            setManualStats({
+              totalCatches: data.totalCatches || 0,
+              uniqueSpecies: data.uniqueSpecies || 0,
+              totalLikes: data.totalLikes || 0
+            });
+          }
+        } catch (error) {
+          console.error("Error fetching stats:", error);
+        }
+      };
+      fetchStats();
+    }
+  }, [isAuthenticated, user, userStats]);
+  
+  // Prefer userStats from query, fall back to manually fetched stats if needed
   const safeStats = {
     totalCatches: userStats && typeof userStats === 'object' && 'totalCatches' in userStats 
-      ? userStats.totalCatches
-      : 0,
+      ? userStats.totalCatches 
+      : manualStats.totalCatches,
     uniqueSpecies: userStats && typeof userStats === 'object' && 'uniqueSpecies' in userStats 
-      ? userStats.uniqueSpecies
-      : 0,
+      ? userStats.uniqueSpecies 
+      : manualStats.uniqueSpecies,
     totalLikes: userStats && typeof userStats === 'object' && 'totalLikes' in userStats 
-      ? userStats.totalLikes
-      : 0
+      ? userStats.totalLikes 
+      : manualStats.totalLikes
   };
   
   // Format species data for chart

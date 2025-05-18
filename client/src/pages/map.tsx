@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import CatchForm from "@/components/catches/CatchForm";
 import { Search, Fish, Map, Filter, Plus } from "lucide-react";
 import { formatDate, formatSize, formatWeight } from "@/lib/utils";
+import { getFishSpeciesById } from "@/lib/fishSpecies";
 
 export default function MapPage() {
   const [_, navigate] = useWouterLocation();

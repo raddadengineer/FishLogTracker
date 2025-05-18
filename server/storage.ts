@@ -180,31 +180,78 @@ export class DatabaseStorage implements IStorage {
     return newCatch;
   }
 
-  async getCatch(id: number): Promise<Catch | undefined> {
-    const [fishCatch] = await db
-      .select()
+  async getCatch(id: number): Promise<any | undefined> {
+    const [result] = await db
+      .select({
+        catch: catches,
+        user: {
+          id: users.id,
+          username: users.username,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          profileImageUrl: users.profileImageUrl
+        }
+      })
       .from(catches)
+      .leftJoin(users, eq(catches.userId, users.id))
       .where(eq(catches.id, id));
     
-    return fishCatch;
+    if (!result) return undefined;
+    
+    return {
+      ...result.catch,
+      user: result.user
+    };
   }
 
-  async getUserCatches(userId: string, limit = 10): Promise<Catch[]> {
-    return await db
-      .select()
+  async getUserCatches(userId: string, limit = 10): Promise<any[]> {
+    const results = await db
+      .select({
+        catch: catches,
+        user: {
+          id: users.id,
+          username: users.username,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          profileImageUrl: users.profileImageUrl
+        }
+      })
       .from(catches)
+      .leftJoin(users, eq(catches.userId, users.id))
       .where(eq(catches.userId, userId))
       .orderBy(desc(catches.createdAt))
       .limit(limit);
+    
+    return results.map(result => ({
+      ...result.catch,
+      user: result.user
+    }));
   }
 
-  async getAllCatches(limit = 20, offset = 0): Promise<Catch[]> {
-    return await db
-      .select()
+  async getAllCatches(limit = 20, offset = 0): Promise<any[]> {
+    // Join with users table to get user information
+    const results = await db
+      .select({
+        catch: catches,
+        user: {
+          id: users.id,
+          username: users.username,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          profileImageUrl: users.profileImageUrl
+        }
+      })
       .from(catches)
+      .leftJoin(users, eq(catches.userId, users.id))
       .orderBy(desc(catches.createdAt))
       .limit(limit)
       .offset(offset);
+    
+    // Transform results to include user object within catch object
+    return results.map(result => ({
+      ...result.catch,
+      user: result.user
+    }));
   }
 
   async updateCatch(id: number, catchData: Partial<InsertCatch>): Promise<Catch | undefined> {

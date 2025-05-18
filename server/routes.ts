@@ -259,7 +259,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.params.id;
       const stats = await storage.getUserStats(userId);
-      res.json(stats);
+      // Ensure we always return a valid stats object even if none found
+      res.json(stats || { 
+        totalCatches: 0, 
+        uniqueSpecies: 0, 
+        totalLikes: 0,
+        largestCatch: null 
+      });
     } catch (error) {
       console.error("Error fetching user stats:", error);
       res.status(500).json({ message: "Failed to fetch user stats" });
@@ -270,6 +276,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.params.id;
       const speciesBreakdown = await storage.getSpeciesBreakdown(userId);
+      // Transform the data for client compatibility - return the raw rows from the query
+      // This ensures we have a consistent format
       res.json(speciesBreakdown);
     } catch (error) {
       console.error("Error fetching species breakdown:", error);

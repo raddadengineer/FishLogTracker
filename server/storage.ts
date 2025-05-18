@@ -453,7 +453,10 @@ export class DatabaseStorage implements IStorage {
       WHERE user_id = ${userId}
     `);
     
-    const uniqueSpeciesCount = uniqueSpeciesResult[0]?.count || 0;
+    // Properly parse the result from PostgreSQL
+    const uniqueSpeciesCount = uniqueSpeciesResult && uniqueSpeciesResult.rows 
+      ? uniqueSpeciesResult.rows[0]?.count || 0 
+      : uniqueSpeciesResult[0]?.count || 0;
     
     // Get total likes on user's catches
     const [likesResult] = await db

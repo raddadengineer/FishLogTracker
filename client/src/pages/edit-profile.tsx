@@ -1,5 +1,5 @@
 import React from "react";
-import { useRouter } from "wouter";
+import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
@@ -35,7 +35,7 @@ type EditProfileValues = z.infer<typeof editProfileSchema>;
 
 export default function EditProfilePage() {
   const { user, isLoading: isAuthLoading } = useAuth();
-  const [_, navigate] = useRouter();
+  const [_, navigate] = useLocation();
   const { toast } = useToast();
   
   // Redirect if not authenticated
@@ -85,10 +85,17 @@ export default function EditProfilePage() {
       });
       
       // Send update request
-      await apiRequest(`/api/user/profile`, {
+      const response = await fetch(`/api/user/profile`, {
         method: "PATCH",
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify(values),
       });
+      
+      if (!response.ok) {
+        throw new Error("Failed to update profile");
+      }
       
       // Invalidate user cache
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });

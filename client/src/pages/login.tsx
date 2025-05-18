@@ -57,6 +57,9 @@ export default function LoginPage() {
       // Store user info directly in localStorage for immediate use
       localStorage.setItem('currentUserId', data.user.id);
       localStorage.setItem('currentUserName', data.user.username);
+      localStorage.setItem('currentUserRole', data.user.role || 'user');
+      
+      console.log("Login successful, user data:", data.user);
       
       // Invalidate auth queries to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });

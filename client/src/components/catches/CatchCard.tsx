@@ -31,6 +31,8 @@ interface CatchCardProps {
     user?: {
       id: string;
       username: string;
+      firstName?: string;
+      lastName?: string;
       profileImageUrl?: string;
     };
     likesCount?: number;
@@ -91,7 +93,9 @@ export default function CatchCard({ catchData }: CatchCardProps) {
               </Avatar>
               <div>
                 <p className="font-medium text-sm">
-                  {catchData.user?.username || (catchData.userId ? `User-${catchData.userId.substring(0, 4)}` : 'Anonymous')}
+                  {catchData.user?.firstName && catchData.user?.lastName 
+                    ? `${catchData.user.firstName} ${catchData.user.lastName}`
+                    : catchData.user?.username || (catchData.userId ? `User-${catchData.userId.substring(0, 4)}` : 'Anonymous')}
                 </p>
                 <p className="text-xs text-gray-500">{timeAgo(catchData.createdAt)}</p>
               </div>

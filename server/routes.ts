@@ -720,7 +720,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/lakes/:id/leaderboard", async (req, res) => {
+  app.get("/api/lakes/:id/leaderboard", allowPublicAccess, async (req, res) => {
     try {
       const lakeId = parseInt(req.params.id);
       const criteria = (req.query.criteria as string) || 'catches';
@@ -731,7 +731,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const leaderboard = await storage.getLakeLeaderboard(lakeId, criteria as 'catches' | 'species' | 'size', limit);
-      res.json(leaderboard);
+      console.log('Lake leaderboard data for criteria:', criteria, JSON.stringify(leaderboard));
+      
+      // Always return a valid array, even if empty
+      res.json(leaderboard || []);
     } catch (error) {
       console.error("Error fetching lake leaderboard:", error);
       res.status(500).json({ message: "Failed to fetch lake leaderboard" });

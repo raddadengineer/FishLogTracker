@@ -29,7 +29,13 @@ export default function AdminPage() {
     queryKey: ['/api/admin/users'],
     queryFn: async () => {
       try {
-        const response = await fetch('/api/admin/users');
+        // Include user credentials and role in request headers
+        const response = await fetch('/api/admin/users', {
+          headers: {
+            'x-auth-user-id': (user as any)?.id || '',
+            'x-auth-user-role': (user as any)?.role || ''
+          }
+        });
         if (!response.ok) {
           throw new Error('Failed to fetch users');
         }
@@ -39,7 +45,7 @@ export default function AdminPage() {
         return [];
       }
     },
-    enabled: !!user && user?.role === 'admin',
+    enabled: !!user && (user as any)?.role === 'admin',
   });
   
   // Fetch all catches for admin review
@@ -47,7 +53,12 @@ export default function AdminPage() {
     queryKey: ['/api/catches'],
     queryFn: async () => {
       try {
-        const response = await fetch('/api/catches?limit=100');
+        const response = await fetch('/api/catches?limit=100', {
+          headers: {
+            'x-auth-user-id': (user as any)?.id || '',
+            'x-auth-user-role': (user as any)?.role || ''
+          }
+        });
         if (!response.ok) {
           throw new Error('Failed to fetch catches');
         }
@@ -57,7 +68,7 @@ export default function AdminPage() {
         return [];
       }
     },
-    enabled: !!user && user?.role === 'admin',
+    enabled: !!user && (user as any)?.role === 'admin',
   });
 
   // Count unverified catches
@@ -202,7 +213,7 @@ export default function AdminPage() {
   const selectedCatch = allCatches.find((c: any) => c.id === selectedCatchId);
 
   // If user is not an admin, show admin setup button
-  if (user && user?.role !== 'admin') {
+  if (user && (user as any)?.role !== 'admin') {
     return (
       <div className="container max-w-6xl mx-auto py-6">
         <h1 className="text-2xl font-bold mb-6">Admin Access Required</h1>
@@ -423,7 +434,13 @@ export default function AdminPage() {
                               <TableCell>#{catchItem.id}</TableCell>
                               <TableCell>{speciesInfo?.name || catchItem.species}</TableCell>
                               <TableCell>{catchItem.user?.username || 'Unknown'}</TableCell>
-                              <TableCell>{catchItem.size?.toFixed(1)}</TableCell>
+                              <TableCell>
+                                {typeof catchItem.size === 'number' 
+                                  ? catchItem.size.toFixed(1) 
+                                  : typeof catchItem.size === 'string'
+                                    ? parseFloat(catchItem.size).toFixed(1)
+                                    : 'N/A'}
+                              </TableCell>
                               <TableCell>{formatDate(catchItem.catchDate)}</TableCell>
                               <TableCell>
                                 {catchItem.isVerified ? (

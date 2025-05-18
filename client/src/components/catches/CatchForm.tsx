@@ -90,16 +90,47 @@ export default function CatchForm({ catchToEdit, onSuccess }: CatchFormProps) {
     },
   });
 
-  // Update location in form when location is obtained
-  useState(() => {
-    if (location) {
-      form.setValue("latitude", location.latitude);
-      form.setValue("longitude", location.longitude);
-      
-      // Fetch weather data when location is available
-      fetchWeather(location.latitude, location.longitude);
+  // Improved direct access to geolocation
+  const getMyLocation = () => {
+    setIsLoadingLocation(true);
+    
+    if (!navigator.geolocation) {
+      toast({
+        title: "Not Supported",
+        description: "Geolocation is not supported in your browser.",
+        variant: "destructive"
+      });
+      setIsLoadingLocation(false);
+      return;
     }
-  });
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        form.setValue("latitude", latitude);
+        form.setValue("longitude", longitude);
+        
+        // Try to get weather data with coordinates
+        fetchWeather(latitude, longitude);
+        
+        toast({
+          title: "Location Found",
+          description: `GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+        });
+        setIsLoadingLocation(false);
+      },
+      (error) => {
+        console.error("Error getting location:", error);
+        toast({
+          title: "Location Error",
+          description: "Could not get your location. Please check your permissions.",
+          variant: "destructive"
+        });
+        setIsLoadingLocation(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
 
   // Handle location button click
   const handleGetLocation = async () => {
@@ -474,17 +505,17 @@ export default function CatchForm({ catchToEdit, onSuccess }: CatchFormProps) {
                 variant="outline" 
                 size="sm"
                 className="h-8 text-xs flex items-center gap-1"
-                onClick={handleGetLocation}
-                disabled={isLocationLoading}
+                onClick={getMyLocation}
+                disabled={isLoadingLocation}
               >
-                {isLocationLoading ? (
+                {isLoadingLocation ? (
                   <>
                     <Loader2 className="h-3 w-3 animate-spin" />
                     Getting location...
                   </>
                 ) : (
                   <>
-                    <i className="ri-gps-line text-sm"></i>
+                    <MapPin className="h-3 w-3 mr-1" />
                     Get My Location
                   </>
                 )}

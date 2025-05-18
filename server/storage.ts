@@ -509,35 +509,35 @@ export class DatabaseStorage implements IStorage {
     if (criteria === 'catches') {
       // Most catches
       const leaderboard = await db.execute(sql`
-        SELECT u.id, u.username, u.profile_image_url, COUNT(c.id) as count
+        SELECT u.id, u.username, u.profile_image_url as "profileImageUrl", COUNT(c.id) as count
         FROM users u
         JOIN catches c ON u.id = c.user_id
         GROUP BY u.id, u.username, u.profile_image_url
         ORDER BY count DESC
         LIMIT ${limit}
       `);
-      return leaderboard;
+      return leaderboard.rows || [];
     } else if (criteria === 'species') {
       // Most diverse species
       const leaderboard = await db.execute(sql`
-        SELECT u.id, u.username, u.profile_image_url, COUNT(DISTINCT c.species) as count
+        SELECT u.id, u.username, u.profile_image_url as "profileImageUrl", COUNT(DISTINCT c.species) as count
         FROM users u
         JOIN catches c ON u.id = c.user_id
         GROUP BY u.id, u.username, u.profile_image_url
         ORDER BY count DESC
         LIMIT ${limit}
       `);
-      return leaderboard;
+      return leaderboard.rows || [];
     } else {
       // Largest catch
       const leaderboard = await db.execute(sql`
-        SELECT u.id, u.username, u.profile_image_url, c.species, c.size, c.catch_date
+        SELECT u.id, u.username, u.profile_image_url as "profileImageUrl", c.species, c.size, c.catch_date as "catchDate"
         FROM users u
         JOIN catches c ON u.id = c.user_id
         ORDER BY c.size DESC
         LIMIT ${limit}
       `);
-      return leaderboard;
+      return leaderboard.rows || [];
     }
   }
 
@@ -545,7 +545,7 @@ export class DatabaseStorage implements IStorage {
     if (criteria === 'catches') {
       // Most catches in specific lake
       const leaderboard = await db.execute(sql`
-        SELECT u.id, u.username, u.profile_image_url, COUNT(c.id) as count
+        SELECT u.id, u.username, u.profile_image_url as "profileImageUrl", COUNT(c.id) as count
         FROM users u
         JOIN catches c ON u.id = c.user_id
         WHERE c.lake_id = ${lakeId}
@@ -553,11 +553,11 @@ export class DatabaseStorage implements IStorage {
         ORDER BY count DESC
         LIMIT ${limit}
       `);
-      return leaderboard;
+      return leaderboard.rows || [];
     } else if (criteria === 'species') {
       // Most diverse species in specific lake
       const leaderboard = await db.execute(sql`
-        SELECT u.id, u.username, u.profile_image_url, COUNT(DISTINCT c.species) as count
+        SELECT u.id, u.username, u.profile_image_url as "profileImageUrl", COUNT(DISTINCT c.species) as count
         FROM users u
         JOIN catches c ON u.id = c.user_id
         WHERE c.lake_id = ${lakeId}
@@ -565,18 +565,18 @@ export class DatabaseStorage implements IStorage {
         ORDER BY count DESC
         LIMIT ${limit}
       `);
-      return leaderboard;
+      return leaderboard.rows || [];
     } else {
       // Largest catch in specific lake
       const leaderboard = await db.execute(sql`
-        SELECT u.id, u.username, u.profile_image_url, c.species, c.size, c.catch_date
+        SELECT u.id, u.username, u.profile_image_url as "profileImageUrl", c.species, c.size, c.catch_date as "catchDate"
         FROM users u
         JOIN catches c ON u.id = c.user_id
         WHERE c.lake_id = ${lakeId}
         ORDER BY c.size DESC
         LIMIT ${limit}
       `);
-      return leaderboard;
+      return leaderboard.rows || [];
     }
   }
 }

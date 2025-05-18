@@ -683,6 +683,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Leaderboard routes
+  app.get("/api/leaderboard", async (req, res) => {
+    try {
+      const criteria = (req.query.criteria as string) || 'catches';
+      const limit = parseInt(req.query.limit as string) || 10;
+      
+      if (!['catches', 'species', 'size'].includes(criteria)) {
+        return res.status(400).json({ message: "Invalid criteria" });
+      }
+      
+      const leaderboard = await storage.getGlobalLeaderboard(criteria as 'catches' | 'species' | 'size', limit);
+      res.json(leaderboard);
+    } catch (error) {
+      console.error("Error fetching leaderboard:", error);
+      res.status(500).json({ message: "Failed to fetch leaderboard" });
+    }
+  });
+  
   app.get("/api/leaderboard/:criteria", isAuthenticated, async (req, res) => {
     try {
       const criteria = req.params.criteria as 'catches' | 'species' | 'size';
@@ -700,6 +717,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/lakes/:id/leaderboard", async (req, res) => {
+    try {
+      const lakeId = parseInt(req.params.id);
+      const criteria = (req.query.criteria as string) || 'catches';
+      const limit = parseInt(req.query.limit as string) || 10;
+      
+      if (!['catches', 'species', 'size'].includes(criteria)) {
+        return res.status(400).json({ message: "Invalid criteria" });
+      }
+      
+      const leaderboard = await storage.getLakeLeaderboard(lakeId, criteria as 'catches' | 'species' | 'size', limit);
+      res.json(leaderboard);
+    } catch (error) {
+      console.error("Error fetching lake leaderboard:", error);
+      res.status(500).json({ message: "Failed to fetch lake leaderboard" });
+    }
+  });
+  
   app.get("/api/lakes/:id/leaderboard/:criteria", isAuthenticated, async (req, res) => {
     try {
       const lakeId = parseInt(req.params.id);

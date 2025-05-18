@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getFishSpeciesById } from "@/lib/fishSpecies";
 
 interface SpeciesData {
   species: string;
@@ -48,7 +49,7 @@ export default function SpeciesChart({ title, data }: SpeciesChartProps) {
           enrichedData.map((species, index) => (
             <div key={index} className="space-y-1">
               <div className="flex justify-between text-xs">
-                <span>{species.species}</span>
+                <span>{getFishSpeciesById(species.species).name}</span>
                 <span>{species.count} {species.count === 1 ? 'catch' : 'catches'}</span>
               </div>
               <div className="w-full bg-gray-100 rounded-full h-2">

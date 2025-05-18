@@ -51,8 +51,75 @@ export default function Home() {
   const [manualStats, setManualStats] = useState({
     totalCatches: 0,
     uniqueSpecies: 0,
-    totalLikes: 0
+    totalLikes: 0,
+    catchesLastMonth: 0,
+    speciesLastMonth: 0
   });
+  
+  // Fetch all user catches to calculate time-based stats
+  const { data: userCatches } = useQuery({
+    queryKey: ['/api/users', user?.id, 'catches'],
+    enabled: isAuthenticated && !!user?.id,
+    refetchOnWindowFocus: false,
+    staleTime: 60000
+  });
+  
+  // Calculate changes in total catches and species based on the selected timeframe
+  const getStatChanges = () => {
+    if (!userCatches || !Array.isArray(userCatches)) {
+      return { catchChange: 0, speciesChange: 0 };
+    }
+    
+    const now = new Date();
+    let compareDate = new Date();
+    let currentPeriodStart = new Date();
+    
+    // Set comparison period based on timeframe
+    if (timeframe === 'month') {
+      // Compare current month with previous month
+      currentPeriodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      compareDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    } else if (timeframe === 'year') {
+      // Compare current year with previous year
+      currentPeriodStart = new Date(now.getFullYear(), 0, 1);
+      compareDate = new Date(now.getFullYear() - 1, 0, 1);
+    } else {
+      // All time - just show total without comparison
+      return { catchChange: 0, speciesChange: 0 };
+    }
+    
+    // Count catches in current and previous period
+    const currentPeriodCatches = userCatches.filter((c: any) => 
+      new Date(c.catchDate) >= currentPeriodStart).length;
+    
+    const previousPeriodCatches = userCatches.filter((c: any) => 
+      new Date(c.catchDate) >= compareDate && new Date(c.catchDate) < currentPeriodStart).length;
+    
+    // Count unique species in current and previous period
+    const currentPeriodSpecies = new Set(
+      userCatches
+        .filter((c: any) => new Date(c.catchDate) >= currentPeriodStart)
+        .map((c: any) => c.species)
+    ).size;
+    
+    const previousPeriodSpecies = new Set(
+      userCatches
+        .filter((c: any) => new Date(c.catchDate) >= compareDate && new Date(c.catchDate) < currentPeriodStart)
+        .map((c: any) => c.species)
+    ).size;
+    
+    const catchChange = currentPeriodCatches - previousPeriodCatches;
+    const speciesChange = currentPeriodSpecies - previousPeriodSpecies;
+    
+    return { catchChange, speciesChange };
+  };
+  
+  // Calculate the actual changes
+  const { catchChange, speciesChange } = getStatChanges();
+  
+  // Create change text based on timeframe
+  const timeframeText = timeframe === 'month' ? 'last month' : 
+                        timeframe === 'year' ? 'last year' : '';
   
   // If userStats from the query is not available but user is authenticated, try fetching directly
   useEffect(() => {
@@ -65,7 +132,9 @@ export default function Home() {
             setManualStats({
               totalCatches: data.totalCatches || 0,
               uniqueSpecies: data.uniqueSpecies || 0,
-              totalLikes: data.totalLikes || 0
+              totalLikes: data.totalLikes || 0,
+              catchesLastMonth: 0,
+              speciesLastMonth: 0
             });
           }
         } catch (error) {
@@ -254,8 +323,8 @@ export default function Home() {
               title="Total Catches"
               value={isLoadingStats ? "..." : safeStats.totalCatches}
               icon={<Fish className="h-5 w-5 text-primary" />}
-              change="+8 from last month"
-              isPositive={true}
+              change={catchChange !== 0 ? `${catchChange > 0 ? '+' : ''}${catchChange} from ${timeframeText}` : undefined}
+              isPositive={catchChange >= 0}
             />
             
             <StatCard
@@ -263,8 +332,8 @@ export default function Home() {
               value={isLoadingStats ? "..." : safeStats.uniqueSpecies}
               icon={<ActivitySquare className="h-5 w-5 text-secondary" />}
               iconBgClass="bg-secondary/10"
-              change="+2 from last month"
-              isPositive={true}
+              change={speciesChange !== 0 ? `${speciesChange > 0 ? '+' : ''}${speciesChange} from ${timeframeText}` : undefined}
+              isPositive={speciesChange >= 0}
             />
           </div>
 

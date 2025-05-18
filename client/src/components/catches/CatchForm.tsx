@@ -9,6 +9,7 @@ import { getFishSpeciesOptions } from "@/lib/fishSpecies";
 import { saveOfflineCatch } from "@/lib/localStorageSync";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
+import { getWeatherIcon } from "@/lib/utils";
 import { Mic, MapPin, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {

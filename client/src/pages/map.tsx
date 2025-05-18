@@ -194,7 +194,7 @@ export default function MapPage() {
                     <div className="grid grid-cols-2 gap-2">
                       <div className="bg-gray-50 p-2 rounded-md">
                         <p className="text-xs text-gray-500">Species</p>
-                        <p className="font-medium">{selectedCatchData.species}</p>
+                        <p className="font-medium">{getFishSpeciesById(selectedCatchData.species)?.name || selectedCatchData.species}</p>
                       </div>
                       <div className="bg-gray-50 p-2 rounded-md">
                         <p className="text-xs text-gray-500">Size</p>
@@ -313,7 +313,7 @@ export default function MapPage() {
                           <AvatarFallback>{catchItem.user?.username?.substring(0, 2).toUpperCase()}</AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="font-medium text-sm">{catchItem.species}</p>
+                          <p className="font-medium text-sm">{getFishSpeciesById(catchItem.species)?.name || catchItem.species}</p>
                           <p className="text-xs text-gray-500">{formatSize(catchItem.size)} • {catchItem.user?.username}</p>
                         </div>
                       </div>

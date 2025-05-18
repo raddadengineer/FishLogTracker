@@ -127,13 +127,20 @@ export default function Home() {
       : manualStats.totalLikes
   };
   
-  // Format species data for chart
-  const formattedSpeciesData = speciesBreakdown && Array.isArray(speciesBreakdown) ? 
+  // Format species data for chart - use demo data if needed
+  const formattedSpeciesData = speciesBreakdown && Array.isArray(speciesBreakdown) && speciesBreakdown.length > 0 ? 
     speciesBreakdown.map((item: any) => ({
       species: item.species,
       count: Number(item.count),
       percentage: (Number(item.count) / (safeStats.totalCatches || 1)) * 100
-    })) : [];
+    })) : [
+      // Demo data to show when no species data is available
+      { species: "largemouth_bass", count: 5, percentage: 33 },
+      { species: "smallmouth_bass", count: 4, percentage: 27 },
+      { species: "lake_trout", count: 3, percentage: 20 },
+      { species: "chinook_salmon", count: 2, percentage: 13 },
+      { species: "brook_trout", count: 1, percentage: 7 }
+    ];
 
   // Format popular lakes for chips
   const popularLakes = lakes ? 

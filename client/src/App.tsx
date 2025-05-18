@@ -13,6 +13,7 @@ import LoginPage from "@/pages/login";
 import RegisterPage from "@/pages/register";
 import TestCatchPage from "@/pages/test-catch";
 import EditProfilePage from "@/pages/edit-profile";
+import SettingsPage from "@/pages/settings";
 import Layout from "@/components/layout/Layout";
 import { useEffect } from "react";
 import { initSyncModule } from "@/lib/localStorageSync";
@@ -44,6 +45,7 @@ function Router() {
         <Route path="/leaderboard" component={LeaderboardPage} />
         <Route path="/admin" component={AdminPage} />
         <Route path="/test-catch" component={TestCatchPage} />
+        <Route path="/settings" component={SettingsPage} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

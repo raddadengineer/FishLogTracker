@@ -186,7 +186,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Admin routes
-  app.get('/api/admin/users', isAuthenticated, isAdmin, async (req, res) => {
+  app.use('/api/admin', adminRouter);
+  
+  // Legacy admin user route - can be removed once the new router is working
+  app.get('/api/admin/users-legacy', isAuthenticated, isAdmin, async (req, res) => {
     try {
       const allUsers = await db.select().from(usersTable);
       res.json(allUsers);

@@ -309,9 +309,13 @@ export default function Home() {
       <section className="mb-6">
         <div className="flex justify-between items-center mb-3">
           <h2 className="text-lg font-semibold">Recent Catches</h2>
-          <Link href="/catches">
-            <a className="text-primary text-sm font-medium">View All</a>
-          </Link>
+          <Button 
+            variant="link" 
+            className="text-primary text-sm font-medium p-0" 
+            onClick={() => window.location.href = "/catches"}
+          >
+            View All
+          </Button>
         </div>
         
         {/* Catch cards */}

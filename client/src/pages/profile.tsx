@@ -224,7 +224,7 @@ export default function ProfilePage() {
           <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center">
-                <span className="mr-2">{selectedCatch.species}</span>
+                <span className="mr-2">{getFishSpeciesById(selectedCatch.species).name}</span>
                 {selectedCatch.isVerified && (
                   <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">
                     <Check className="h-3 w-3 mr-1" />
@@ -241,7 +241,7 @@ export default function ProfilePage() {
                   <div className="rounded-lg overflow-hidden bg-gray-100 h-64 relative">
                     <img 
                       src={selectedCatch.photos[0]} 
-                      alt={selectedCatch.species} 
+                      alt={getFishSpeciesById(selectedCatch.species).name} 
                       className="w-full h-full object-cover"
                     />
                   </div>

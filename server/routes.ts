@@ -259,13 +259,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.params.id;
       const stats = await storage.getUserStats(userId);
-      // Ensure we always return a valid stats object even if none found
-      res.json(stats || { 
-        totalCatches: 0, 
-        uniqueSpecies: 0, 
-        totalLikes: 0,
-        largestCatch: null 
-      });
+      
+      // Always return a consistent stats object with default values
+      const formattedStats = {
+        totalCatches: stats?.totalCatches || 0, 
+        uniqueSpecies: stats?.uniqueSpecies || 0, 
+        totalLikes: stats?.totalLikes || 0,
+        largestCatch: stats?.largestCatch || null 
+      };
+      
+      res.json(formattedStats);
     } catch (error) {
       console.error("Error fetching user stats:", error);
       res.status(500).json({ message: "Failed to fetch user stats" });
@@ -276,9 +279,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.params.id;
       const speciesBreakdown = await storage.getSpeciesBreakdown(userId);
-      // Transform the data for client compatibility - return the raw rows from the query
-      // This ensures we have a consistent format
-      res.json(speciesBreakdown);
+      
+      // Always return a formatted array (even if empty) for consistent client handling
+      res.json(Array.isArray(speciesBreakdown) ? speciesBreakdown : []);
     } catch (error) {
       console.error("Error fetching species breakdown:", error);
       res.status(500).json({ message: "Failed to fetch species breakdown" });
@@ -289,7 +292,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.params.id;
       const lakesBreakdown = await storage.getLakesBreakdown(userId);
-      res.json(lakesBreakdown);
+      
+      // Always return a formatted array (even if empty) for consistent client handling
+      res.json(Array.isArray(lakesBreakdown) ? lakesBreakdown : []);
     } catch (error) {
       console.error("Error fetching lakes breakdown:", error);
       res.status(500).json({ message: "Failed to fetch lakes breakdown" });

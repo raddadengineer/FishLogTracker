@@ -26,10 +26,21 @@ export default function LeaderboardPage() {
     queryKey: [
       lakeId === 'global' 
         ? '/api/leaderboard' 
-        : `/api/lakes/${lakeId}/leaderboard`, 
-      criteria,
-      timeframe
+        : `/api/lakes/${lakeId}/leaderboard`,
+      { criteria, timeframe }
     ],
+    // Pass criteria as query parameter
+    queryFn: async ({ queryKey }) => {
+      const baseUrl = queryKey[0] as string;
+      const params = new URLSearchParams();
+      params.append('criteria', criteria);
+      if (timeframe !== 'all') {
+        params.append('timeframe', timeframe);
+      }
+      const res = await fetch(`${baseUrl}?${params.toString()}`);
+      if (!res.ok) throw new Error('Failed to fetch leaderboard');
+      return res.json();
+    },
     enabled: true,
   });
 
@@ -176,37 +187,35 @@ export default function LeaderboardPage() {
                 <div className="space-y-3">
                   {leaderboard.map((item: any, index: number) => (
                     <Link key={index} href={`/profile/${item.id}`}>
-                      <a className="block">
-                        <div className="flex items-center p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                          <div className="flex items-center justify-center w-8 mr-3">
-                            {getRankIcon(index)}
-                          </div>
-                          
-                          <Avatar className="h-10 w-10 mr-3">
-                            <AvatarImage src={item.profileImageUrl} />
-                            <AvatarFallback>{item.username?.substring(0, 2).toUpperCase()}</AvatarFallback>
-                          </Avatar>
-                          
-                          <div className="flex-1">
-                            <p className="font-medium">{item.username}</p>
-                            <p className="text-sm text-gray-500">
-                              {getAchievementText(item)}
-                              {criteria === 'size' && item.catchDate && (
-                                <span className="ml-2 text-xs">
-                                  {formatDate(item.catchDate)}
-                                </span>
-                              )}
-                            </p>
-                          </div>
-                          
-                          {index === 0 && (
-                            <Badge className="bg-amber-50 text-amber-600 border-amber-200">
-                              <i className="ri-trophy-line mr-1"></i>
-                              Top Angler
-                            </Badge>
-                          )}
+                      <div className="flex items-center p-3 rounded-lg hover:bg-gray-50 transition-colors">
+                        <div className="flex items-center justify-center w-8 mr-3">
+                          {getRankIcon(index)}
                         </div>
-                      </a>
+                        
+                        <Avatar className="h-10 w-10 mr-3">
+                          <AvatarImage src={item.profileImageUrl} />
+                          <AvatarFallback>{item.username?.substring(0, 2).toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        
+                        <div className="flex-1">
+                          <p className="font-medium">{item.username}</p>
+                          <p className="text-sm text-gray-500">
+                            {getAchievementText(item)}
+                            {criteria === 'size' && item.catchDate && (
+                              <span className="ml-2 text-xs">
+                                {formatDate(item.catchDate)}
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                        
+                        {index === 0 && (
+                          <Badge className="bg-amber-50 text-amber-600 border-amber-200">
+                            <Trophy className="h-4 w-4 mr-1" />
+                            Top Angler
+                          </Badge>
+                        )}
+                      </div>
                     </Link>
                   ))}
                 </div>

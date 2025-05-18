@@ -562,7 +562,7 @@ export default function ProfilePage() {
                 <CardContent>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium">{stats.largestCatch.species}</p>
+                      <p className="font-medium">{getFishSpeciesById(stats.largestCatch.species).name}</p>
                       <div className="flex items-center text-gray-500 text-sm">
                         <span className="mr-3">{stats.largestCatch.size} inches</span>
                         {stats.largestCatch.weight && (

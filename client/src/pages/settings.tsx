@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,46 +7,16 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "wouter";
+import { useSettings } from "@/hooks/useSettings";
 
 export default function SettingsPage() {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const { settings, updateSetting, saveSettings } = useSettings();
   
-  // Settings states
-  const [enableNotifications, setEnableNotifications] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
-  const [useMetric, setUseMetric] = useState(false);
-  const [dataSync, setDataSync] = useState(true);
-  const [showLocation, setShowLocation] = useState(true);
-  
-  // Load settings from localStorage on mount
-  useEffect(() => {
-    const savedSettings = localStorage.getItem('fishTrackerSettings');
-    if (savedSettings) {
-      try {
-        const parsedSettings = JSON.parse(savedSettings);
-        setEnableNotifications(parsedSettings.enableNotifications ?? true);
-        setDarkMode(parsedSettings.darkMode ?? false);
-        setUseMetric(parsedSettings.useMetric ?? false);
-        setDataSync(parsedSettings.dataSync ?? true);
-        setShowLocation(parsedSettings.showLocation ?? true);
-      } catch (e) {
-        console.error("Failed to parse settings:", e);
-      }
-    }
-  }, []);
-  
-  // Save settings
-  const saveSettings = () => {
-    const settings = {
-      enableNotifications,
-      darkMode,
-      useMetric,
-      dataSync,
-      showLocation
-    };
-    
-    localStorage.setItem('fishTrackerSettings', JSON.stringify(settings));
+  // Save settings with toast notification
+  const handleSaveSettings = () => {
+    saveSettings();
     
     toast({
       title: "Settings saved",
@@ -82,8 +51,8 @@ export default function SettingsPage() {
                 </div>
                 <Switch 
                   id="darkMode" 
-                  checked={darkMode} 
-                  onCheckedChange={setDarkMode} 
+                  checked={settings.darkMode} 
+                  onCheckedChange={(checked) => updateSetting('darkMode', checked)} 
                 />
               </div>
               
@@ -94,8 +63,8 @@ export default function SettingsPage() {
                 </div>
                 <Switch 
                   id="useMetric" 
-                  checked={useMetric} 
-                  onCheckedChange={setUseMetric} 
+                  checked={settings.useMetric} 
+                  onCheckedChange={(checked) => updateSetting('useMetric', checked)} 
                 />
               </div>
               
@@ -106,8 +75,8 @@ export default function SettingsPage() {
                 </div>
                 <Switch 
                   id="enableNotifications" 
-                  checked={enableNotifications} 
-                  onCheckedChange={setEnableNotifications} 
+                  checked={settings.enableNotifications} 
+                  onCheckedChange={(checked) => updateSetting('enableNotifications', checked)} 
                 />
               </div>
             </CardContent>
@@ -169,8 +138,8 @@ export default function SettingsPage() {
                 </div>
                 <Switch 
                   id="dataSync" 
-                  checked={dataSync} 
-                  onCheckedChange={setDataSync} 
+                  checked={settings.dataSync} 
+                  onCheckedChange={(checked) => updateSetting('dataSync', checked)} 
                 />
               </div>
               
@@ -181,8 +150,8 @@ export default function SettingsPage() {
                 </div>
                 <Switch 
                   id="showLocation" 
-                  checked={showLocation} 
-                  onCheckedChange={setShowLocation} 
+                  checked={settings.showLocation} 
+                  onCheckedChange={(checked) => updateSetting('showLocation', checked)} 
                 />
               </div>
               

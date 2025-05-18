@@ -30,6 +30,8 @@ export interface IStorage {
   unfollowUser(followerId: string, followingId: string): Promise<void>;
   isFollowing(followerId: string, followingId: string): Promise<boolean>;
   updateUserRole(userId: string, role: string): Promise<User>;
+  getAllUsers(): Promise<User[]>;
+  getAdminUsers(): Promise<User[]>;
   
   // Catch operations
   createCatch(catchData: InsertCatch): Promise<Catch>;
@@ -168,6 +170,14 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     return updatedUser;
+  }
+  
+  async getAllUsers(): Promise<User[]> {
+    return await db.select().from(users).orderBy(users.createdAt);
+  }
+  
+  async getAdminUsers(): Promise<User[]> {
+    return await db.select().from(users).where(eq(users.role, 'admin'));
   }
 
   // Catch operations

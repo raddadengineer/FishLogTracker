@@ -5,12 +5,13 @@ export function useAuth() {
   // First check localStorage for fallback user data
   const userId = localStorage.getItem('currentUserId');
   const userName = localStorage.getItem('currentUserName');
+  const userRole = localStorage.getItem('currentUserRole');
   
   // Create a more complete fallback user object with properties that match our schema
   const localStorageUser = userId && userName ? {
     id: userId,
     username: userName,
-    role: 'user',
+    role: userRole || 'user',
     email: null,
     firstName: null,
     lastName: null,

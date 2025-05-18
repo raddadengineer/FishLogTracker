@@ -209,7 +209,7 @@ export default function CatchForm({ catchToEdit, onSuccess }: CatchFormProps) {
         
         // Create simplified data with proper formatting
         const simplifiedData = {
-          userId: userId,
+          userId: userId || '32a4819a-ee2b-4e91-aa42-d313eb2214ba', // Use a default Guest ID if not logged in
           species: data.species,
           size: data.size.toString(),
           weight: data.weight ? data.weight.toString() : null,
@@ -228,7 +228,7 @@ export default function CatchForm({ catchToEdit, onSuccess }: CatchFormProps) {
         let response;
         
         if (catchToEdit) {
-          // If editing an existing catch, use PUT request
+          // For edit, try the authenticated API first
           response = await fetch(`/api/catches/${catchToEdit.id}`, {
             method: 'PUT',
             headers: {
@@ -237,7 +237,7 @@ export default function CatchForm({ catchToEdit, onSuccess }: CatchFormProps) {
             body: JSON.stringify(simplifiedData)
           });
         } else {
-          // If creating a new catch, use POST request
+          // If creating a new catch, use direct-catch API
           response = await fetch('/api/direct-catch/create', {
             method: 'POST',
             headers: {

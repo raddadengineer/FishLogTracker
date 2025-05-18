@@ -64,27 +64,75 @@ export default function Home() {
     staleTime: 60000
   });
   
-  // Get changes based on hardcoded values for the demo based on timeframe
-  // This simulates real calculations that would be done with user's catch data
+  // Calculate changes dynamically based on actual catch data
   const [catchChange, setCatchChange] = useState(0);
   const [speciesChange, setSpeciesChange] = useState(0);
   
-  // Update changes when timeframe changes to simulate real calculations
+  // Calculate changes based on actual catch data when timeframe or recentCatches changes
   useEffect(() => {
-    // These are the demonstration values that would normally be calculated
-    // from the user's actual catch data if we had full history
+    // If no catches data available yet, return early
+    if (!recentCatches || !Array.isArray(recentCatches)) {
+      return;
+    }
+    
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    
+    // Define date ranges based on timeframe
+    let currentPeriodStart, previousPeriodStart, currentPeriodEnd, previousPeriodEnd;
+    
     if (timeframe === 'month') {
-      setCatchChange(4); // +4 catches this month compared to last month
-      setSpeciesChange(2); // +2 new species this month compared to last month
+      // Current month
+      currentPeriodStart = new Date(currentYear, currentMonth, 1);
+      currentPeriodEnd = new Date(currentYear, currentMonth + 1, 0);
+      
+      // Previous month
+      previousPeriodStart = new Date(currentYear, currentMonth - 1, 1);
+      previousPeriodEnd = new Date(currentYear, currentMonth, 0);
     } else if (timeframe === 'year') {
-      setCatchChange(3); // +3 catches this year compared to last year (changed from 8 to be consistent)
-      setSpeciesChange(3); // +3 species this year compared to last year
+      // Current year
+      currentPeriodStart = new Date(currentYear, 0, 1);
+      currentPeriodEnd = new Date(currentYear, 11, 31);
+      
+      // Previous year
+      previousPeriodStart = new Date(currentYear - 1, 0, 1);
+      previousPeriodEnd = new Date(currentYear - 1, 11, 31);
     } else {
-      // All time - no comparison
+      // All time - no comparison needed
       setCatchChange(0);
       setSpeciesChange(0);
+      return;
     }
-  }, [timeframe]);
+    
+    // Filter catches for current and previous periods
+    const currentPeriodCatches = recentCatches.filter((c: any) => {
+      const catchDate = new Date(c.catchDate);
+      return catchDate >= currentPeriodStart && catchDate <= currentPeriodEnd;
+    });
+    
+    const previousPeriodCatches = recentCatches.filter((c: any) => {
+      const catchDate = new Date(c.catchDate);
+      return catchDate >= previousPeriodStart && catchDate <= previousPeriodEnd;
+    });
+    
+    // Count catches
+    const currentCatchCount = currentPeriodCatches.length;
+    const previousCatchCount = previousPeriodCatches.length;
+    
+    // Count unique species
+    const currentSpeciesSet = new Set(currentPeriodCatches.map((c: any) => c.species));
+    const previousSpeciesSet = new Set(previousPeriodCatches.map((c: any) => c.species));
+    
+    // Calculate change
+    const catchChangeValue = currentCatchCount - previousCatchCount;
+    const speciesChangeValue = currentSpeciesSet.size - previousSpeciesSet.size;
+    
+    // Update state
+    setCatchChange(catchChangeValue);
+    setSpeciesChange(speciesChangeValue);
+    
+  }, [timeframe, recentCatches]);
   
   // Create change text based on timeframe
   const timeframeText = timeframe === 'month' ? 'last month' : 

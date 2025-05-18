@@ -263,17 +263,16 @@ export default function Home() {
             </DialogContent>
           </Dialog>
           
-          <Link href="/map">
-            <Button 
+          <Button 
               variant="outline" 
               className="flex flex-col items-center justify-center p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition duration-200 h-auto w-full"
+              onClick={() => window.location.href = "/map"}
             >
               <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center mb-2">
                 <i className="ri-map-pin-line text-xl text-secondary"></i>
               </div>
               <span className="text-sm font-medium">Explore Map</span>
             </Button>
-          </Link>
         </div>
       </section>
 

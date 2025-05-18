@@ -89,6 +89,9 @@ export default function LoginPage() {
           <CardDescription>
             Enter your credentials to access your account
           </CardDescription>
+          <div className="mt-2 p-2 bg-amber-50 text-amber-700 text-sm rounded border border-amber-200">
+            <strong>Admin Access:</strong> Use email <code>admin@example.com</code> with password <code>password123</code>
+          </div>
         </CardHeader>
         <CardContent>
           <Form {...form}>

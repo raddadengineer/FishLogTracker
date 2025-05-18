@@ -81,8 +81,8 @@ export default function Header() {
               <Button variant="ghost" size="icon" className="rounded-full overflow-hidden bg-gray-200">
                 {isAuthenticated ? (
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={user?.profileImageUrl} alt={user?.username || ""} />
-                    <AvatarFallback>{user?.username?.substring(0, 2).toUpperCase() || "U"}</AvatarFallback>
+                    <AvatarImage src={(user as any)?.profileImageUrl} alt={(user as any)?.username || ""} />
+                    <AvatarFallback>{(user as any)?.username?.substring(0, 2).toUpperCase() || "U"}</AvatarFallback>
                   </Avatar>
                 ) : (
                   <Avatar className="h-8 w-8">
@@ -100,11 +100,11 @@ export default function Header() {
               <div className="py-4 flex flex-col space-y-2">
                 {isAuthenticated ? (
                   <>
-                    <Link href={`/profile/${user?.id}`} className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-md">
+                    <Link href={`/profile/${(user as any)?.id}`} className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-md">
                         <i className="ri-user-line"></i>
                         Profile
                     </Link>
-                    {user?.role === 'admin' && (
+                    {(user as any)?.role === 'admin' && (
                       <Link href="/admin" className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-md">
                         <i className="ri-shield-star-line"></i>
                         Admin

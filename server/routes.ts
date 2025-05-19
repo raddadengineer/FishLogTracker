@@ -521,6 +521,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add endpoint for users to verify their own catches
+  app.patch("/api/catches/:id/verify", isAuthenticated, async (req, res) => {
+    try {
+      const catchId = parseInt(req.params.id);
+      const userId = req.headers['user-id'] as string || (req.session as any)?.userId;
+      const userRole = (req.session as any)?.role || req.headers['x-auth-user-role'] as string;
+      
+      // Get the catch from the database
+      const catchItem = await storage.getCatch(catchId);
+      
+      if (!catchItem) {
+        return res.status(404).json({ message: "Catch not found" });
+      }
+      
+      // Check if user is the owner of the catch or has admin/moderator role
+      const isOwner = catchItem.userId === userId;
+      const isAdminOrModerator = userRole === 'admin' || userRole === 'moderator';
+      
+      if (!isOwner && !isAdminOrModerator) {
+        return res.status(403).json({ message: "You can only verify your own catches" });
+      }
+      
+      // Verify the catch
+      const verifiedCatch = await storage.verifyCatch(catchId);
+      
+      res.json(verifiedCatch);
+    } catch (error) {
+      console.error("Error verifying catch:", error);
+      res.status(500).json({ message: "Failed to verify catch" });
+    }
+  });
+
   app.delete("/api/catches/:id", isAuthenticated, async (req, res) => {
     try {
       const catchId = parseInt(req.params.id);

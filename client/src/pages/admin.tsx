@@ -116,10 +116,16 @@ export default function AdminPage() {
     mutationFn: async (catchId: number) => {
       const response = await fetch(`/api/admin/catches/${catchId}/verify`, {
         method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-user-id': (user as any)?.id || '',
+          'x-auth-user-role': (user as any)?.role || ''
+        }
       });
       
       if (!response.ok) {
-        throw new Error('Failed to verify catch');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to verify catch');
       }
       
       return response.json();

@@ -1,9 +1,6 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
+import { Pool } from 'pg';
+import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "@shared/schema";
-
-neonConfig.webSocketConstructor = ws;
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -17,12 +14,14 @@ console.log("Connecting to database with URL:", process.env.DATABASE_URL.replace
 const connectWithRetry = () => {
   console.log("Attempting to connect to database...");
   try {
+    // Create a standard PostgreSQL connection pool (no WebSockets)
     const pool = new Pool({ 
       connectionString: process.env.DATABASE_URL,
       // Add longer connection timeout
       connectionTimeoutMillis: 10000,
-      // Add statement timeout
-      statement_timeout: 10000
+      statement_timeout: 10000,
+      // Increase max clients for production
+      max: 20
     });
     
     // Verify connection is working
@@ -39,4 +38,4 @@ const connectWithRetry = () => {
 };
 
 export const pool = connectWithRetry();
-export const db = drizzle({ client: pool, schema });
+export const db = drizzle(pool, { schema });

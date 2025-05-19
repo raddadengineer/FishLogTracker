@@ -8,10 +8,16 @@ services:
     ports:
       - "5000:5000"
     environment:
+      # Using standard PostgreSQL connection (no WebSockets)
       - DATABASE_URL=postgres://postgres:postgres@db:5432/fishtracker
       - NODE_ENV=production
       - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY}
       - SESSION_SECRET=fishing_session_secret_key_here
+      - PGHOST=db
+      - PGUSER=postgres
+      - PGPASSWORD=postgres
+      - PGDATABASE=fishtracker
+      - PGPORT=5432
     depends_on:
       db:
         condition: service_healthy

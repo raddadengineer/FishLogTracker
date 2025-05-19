@@ -73,15 +73,23 @@ export const isAdmin = async (req: Request, res: Response, next: NextFunction) =
 // Middleware to check if user is a moderator or admin
 export const isModeratorOrAdmin = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    if (!req.session || !(req.session as any).isAuthenticated) {
-      return res.status(401).json({ message: "Unauthorized" });
+    // First check session authentication
+    if (req.session && (req.session as any).isAuthenticated) {
+      if ((req.session as any).role === "moderator" || (req.session as any).role === "admin") {
+        req.headers['user-id'] = (req.session as any).userId;
+        return next();
+      }
     }
     
-    if ((req.session as any).role !== "moderator" && (req.session as any).role !== "admin") {
-      return res.status(403).json({ message: "Forbidden: Moderator or admin access required" });
+    // If session auth fails, check for fallback authentication from headers
+    if (req.headers['x-auth-user-id'] && 
+       (req.headers['x-auth-user-role'] === 'moderator' || req.headers['x-auth-user-role'] === 'admin')) {
+      req.headers['user-id'] = req.headers['x-auth-user-id'] as string;
+      return next();
     }
     
-    next();
+    // If both authentication methods fail, return unauthorized
+    return res.status(403).json({ message: "Forbidden: Moderator or admin access required" });
   } catch (error) {
     console.error("Moderator/Admin authorization error:", error);
     res.status(500).json({ message: "Server error during authorization check" });

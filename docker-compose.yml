@@ -2,19 +2,25 @@ version: '3.8'
 
 services:
   app:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "5000:5000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/fishtracker
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/fishtracker
       - NODE_ENV=production
       - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY}
+      - SESSION_SECRET=fishing_session_secret_key_here
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     restart: unless-stopped
+    networks:
+      - fish-tracker-network
 
   db:
-    image: postgres:15
+    image: postgres:15-alpine
     ports:
       - "5432:5432"
     environment:
@@ -24,6 +30,17 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fish-tracker-network
+
+networks:
+  fish-tracker-network:
+    driver: bridge
 
 volumes:
   postgres_data:

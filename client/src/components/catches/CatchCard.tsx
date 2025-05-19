@@ -49,6 +49,7 @@ export default function CatchCard({ catchData }: CatchCardProps) {
   const [isLiked, setIsLiked] = useState(catchData.isLiked || false);
   const [likesCount, setLikesCount] = useState(catchData.likesCount || 0);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isVerified, setIsVerified] = useState(catchData.isVerified || false);
   
   // Check if the current user is the owner of this catch
   const isOwner = isAuthenticated && user?.id === (catchData.user?.id || catchData.userId);
@@ -82,6 +83,59 @@ export default function CatchCard({ catchData }: CatchCardProps) {
       toast({
         title: "Error",
         description: "Failed to update like status",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  // Handle catch verification
+  const handleVerify = async () => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to verify catches",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!isOwner && (user as any)?.role !== 'admin') {
+      toast({
+        title: "Permission Denied",
+        description: "You can only verify your own catches",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/catches/${catchData.id}/verify`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-user-id': (user as any)?.id || '',
+          'x-auth-user-role': (user as any)?.role || ''
+        }
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to verify catch');
+      }
+      
+      setIsVerified(true);
+      
+      // Update any related queries
+      queryClient.invalidateQueries({ queryKey: ['/api/catches'] });
+      
+      toast({
+        title: "Success",
+        description: "Catch verified successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to verify catch",
         variant: "destructive",
       });
     }
@@ -193,15 +247,29 @@ export default function CatchCard({ catchData }: CatchCardProps) {
             </Link>
             
             {isOwner && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="flex items-center text-gray-500 hover:text-primary"
-                onClick={() => setIsEditDialogOpen(true)}
-              >
-                <Edit className="h-4 w-4 mr-1" />
-                <span className="text-xs">Edit</span>
-              </Button>
+              <>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="flex items-center text-gray-500 hover:text-primary"
+                  onClick={() => setIsEditDialogOpen(true)}
+                >
+                  <Edit className="h-4 w-4 mr-1" />
+                  <span className="text-xs">Edit</span>
+                </Button>
+                
+                {!isVerified && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="flex items-center text-gray-500 hover:text-green-600"
+                    onClick={handleVerify}
+                  >
+                    <Check className="h-4 w-4 mr-1" />
+                    <span className="text-xs">Verify</span>
+                  </Button>
+                )}
+              </>
             )}
           </div>
           

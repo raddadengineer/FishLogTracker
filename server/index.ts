@@ -3,24 +3,53 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import session from "express-session";
 import { v4 as uuidv4 } from "uuid";
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Set up session middleware
-app.use(session({
-  secret: 'fish-tracker-secret-key',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    secure: false,
-    httpOnly: true,
-    sameSite: 'lax'
-  },
-  genid: () => uuidv4() // Use UUID for session IDs
-}));
+// Set up session middleware with PostgreSQL session store for production
+if (process.env.NODE_ENV === 'production') {
+  const pgStore = connectPg(session);
+  const sessionTtl = 7 * 24 * 60 * 60; // 7 days in seconds
+  
+  console.log("Setting up PostgreSQL session storage");
+  
+  app.use(session({
+    store: new pgStore({
+      pool: pool,
+      createTableIfMissing: true,
+      tableName: 'sessions',
+      ttl: sessionTtl
+    }),
+    secret: process.env.SESSION_SECRET || 'fish-tracker-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      maxAge: sessionTtl * 1000, // convert seconds to milliseconds
+      secure: true,
+      httpOnly: true,
+      sameSite: 'lax'
+    },
+    genid: () => uuidv4() // Use UUID for session IDs
+  }));
+} else {
+  // In development, use simpler session setup
+  app.use(session({
+    secret: 'fish-tracker-dev-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      secure: false,
+      httpOnly: true,
+      sameSite: 'lax'
+    },
+    genid: () => uuidv4() // Use UUID for session IDs
+  }));
+}
 
 app.use((req, res, next) => {
   const start = Date.now();

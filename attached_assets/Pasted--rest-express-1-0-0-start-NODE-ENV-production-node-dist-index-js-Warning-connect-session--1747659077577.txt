@@ -1,0 +1,545 @@
+> rest-express@1.0.0 start
+
+> NODE_ENV=production node dist/index.js
+
+Warning: connect.session() MemoryStore is not
+
+designed for a production environment, as it will leak
+
+memory, and will not scale past a single process.
+
+12:40:30 PM [express] serving on port 5000
+
+npm error path /app
+
+npm error command failed
+
+npm error signal SIGTERM
+
+npm error command sh -c NODE_ENV=production node dist/index.js
+
+npm notice
+
+npm notice New major version of npm available! 10.8.2 -> 11.4.0
+
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.4.0
+
+npm notice To update run: npm install -g npm@11.4.0
+
+npm notice
+
+npm error Log files were not written due to an error writing to the directory: /nonexistent/.npm/_logs
+
+npm error You can rerun the command with `--loglevel=verbose` to see the logs in your terminal
+
+> rest-express@1.0.0 start
+
+> NODE_ENV=production node dist/index.js
+
+Warning: connect.session() MemoryStore is not
+
+designed for a production environment, as it will leak
+
+memory, and will not scale past a single process.
+
+12:41:06 PM [express] serving on port 5000
+
+12:42:58 PM [express] GET /api/auth/user 401 in 1ms :: {"message":"Not authenticated"}
+
+Public access middleware - headers: {
+
+  host: '192.168.50.212:5000',
+
+  connection: 'keep-alive',
+
+  'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0',
+
+  dnt: '1',
+
+  accept: '*/*',
+
+  referer: 'http://192.168.50.212:5000/',
+
+  'accept-encoding': 'gzip, deflate',
+
+  'accept-language': 'en-US,en;q=0.9',
+
+  cookie: '_pk_id.1.9ebf=6eb33fcb7125fb93.1747492932.; _gorilla_csrf=MTc0NzYzMTY2OXxJa0ZwVW5Od01EWmlRVTVxV0dGeFdYQnpRMkpZTDI5b1ZsbEVkMjVWZW5oRWVtTnJZa2hHVlV4VGVqUTlJZ289fCm6O1nWitVIa7Y5J1GFmljo41kZ4zJ8tteT6JmYi_O9; portainer_api_key=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwidXNlcm5hbWUiOiJhZG1pbiIsInJvbGUiOjEsInNjb3BlIjoiZGVmYXVsdCIsImZvcmNlQ2hhbmdlUGFzc3dvcmQiOmZhbHNlLCJleHAiOjE3NDc2ODczMjAsImlhdCI6MTc0NzY1ODUyMCwianRpIjoiOTEzY2RmMjgtYmFkNS00YjczLTllNDEtODMxM2E0ZWQ4NjA1In0.hpA8WmiKdK5Bq2cMnHrJLfuY5qdkulSu5JIq2wKpcx4; _pk_ses.1.9ebf=1'
+
+}
+
+No user ID available
+
+Error fetching catches: ErrorEvent {
+
+  [Symbol(kTarget)]: WebSocket {
+
+    _events: [Object: null prototype] {
+
+      error: [Function],
+
+      message: [Function],
+
+      close: [Function],
+
+      open: [Function]
+
+    },
+
+    _eventsCount: 4,
+
+    _maxListeners: undefined,
+
+    _binaryType: 'arraybuffer',
+
+    _closeCode: 1006,
+
+    _closeFrameReceived: false,
+
+    _closeFrameSent: false,
+
+    _closeMessage: <Buffer >,
+
+    _closeTimer: null,
+
+    _errorEmitted: true,
+
+    _extensions: {},
+
+    _paused: false,
+
+    _protocol: '',
+
+    _readyState: 3,
+
+    _receiver: null,
+
+    _sender: null,
+
+    _socket: null,
+
+    _bufferedAmount: 0,
+
+    _isServer: false,
+
+    _redirects: 0,
+
+    _autoPong: true,
+
+    _url: 'wss://db/v2',
+
+    _req: null,
+
+    [Symbol(shapeMode)]: false,
+
+    [Symbol(kCapture)]: false
+
+  },
+
+  [Symbol(kType)]: 'error',
+
+  [Symbol(kError)]: Error: connect ECONNREFUSED 192.168.192.2:443
+
+      at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1611:16) {
+
+    errno: -111,
+
+    code: 'ECONNREFUSED',
+
+    syscall: 'connect',
+
+    address: '192.168.192.2',
+
+    port: 443
+
+  },
+
+  [Symbol(kMessage)]: 'connect ECONNREFUSED 192.168.192.2:443'
+
+}
+
+12:42:58 PM [express] GET /api/catches 500 in 20ms :: {"message":"Failed to fetch catches"}
+
+Public access middleware - headers: {
+
+  host: '192.168.50.212:5000',
+
+  connection: 'keep-alive',
+
+  'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0',
+
+  dnt: '1',
+
+  accept: '*/*',
+
+  referer: 'http://192.168.50.212:5000/',
+
+  'accept-encoding': 'gzip, deflate',
+
+  'accept-language': 'en-US,en;q=0.9',
+
+  cookie: '_pk_id.1.9ebf=6eb33fcb7125fb93.1747492932.; _gorilla_csrf=MTc0NzYzMTY2OXxJa0ZwVW5Od01EWmlRVTVxV0dGeFdYQnpRMkpZTDI5b1ZsbEVkMjVWZW5oRWVtTnJZa2hHVlV4VGVqUTlJZ289fCm6O1nWitVIa7Y5J1GFmljo41kZ4zJ8tteT6JmYi_O9; portainer_api_key=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwidXNlcm5hbWUiOiJhZG1pbiIsInJvbGUiOjEsInNjb3BlIjoiZGVmYXVsdCIsImZvcmNlQ2hhbmdlUGFzc3dvcmQiOmZhbHNlLCJleHAiOjE3NDc2ODczMjAsImlhdCI6MTc0NzY1ODUyMCwianRpIjoiOTEzY2RmMjgtYmFkNS00YjczLTllNDEtODMxM2E0ZWQ4NjA1In0.hpA8WmiKdK5Bq2cMnHrJLfuY5qdkulSu5JIq2wKpcx4; _pk_ses.1.9ebf=1'
+
+}
+
+No user ID available
+
+Error fetching lakes: ErrorEvent {
+
+  [Symbol(kTarget)]: WebSocket {
+
+    _events: [Object: null prototype] {
+
+      error: [Function],
+
+      message: [Function],
+
+      close: [Function],
+
+      open: [Function]
+
+    },
+
+    _eventsCount: 4,
+
+    _maxListeners: undefined,
+
+    _binaryType: 'arraybuffer',
+
+    _closeCode: 1006,
+
+    _closeFrameReceived: false,
+
+    _closeFrameSent: false,
+
+    _closeMessage: <Buffer >,
+
+    _closeTimer: null,
+
+    _errorEmitted: true,
+
+    _extensions: {},
+
+    _paused: false,
+
+    _protocol: '',
+
+    _readyState: 3,
+
+    _receiver: null,
+
+    _sender: null,
+
+    _socket: null,
+
+    _bufferedAmount: 0,
+
+    _isServer: false,
+
+    _redirects: 0,
+
+    _autoPong: true,
+
+    _url: 'wss://db/v2',
+
+    _req: null,
+
+    [Symbol(shapeMode)]: false,
+
+    [Symbol(kCapture)]: false
+
+  },
+
+  [Symbol(kType)]: 'error',
+
+  [Symbol(kError)]: Error: connect ECONNREFUSED 192.168.192.2:443
+
+      at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1611:16) {
+
+    errno: -111,
+
+    code: 'ECONNREFUSED',
+
+    syscall: 'connect',
+
+    address: '192.168.192.2',
+
+    port: 443
+
+  },
+
+  [Symbol(kMessage)]: 'connect ECONNREFUSED 192.168.192.2:443'
+
+}
+
+12:42:58 PM [express] GET /api/lakes 500 in 1ms :: {"message":"Failed to fetch lakes"}
+
+Login error: ErrorEvent {
+
+  [Symbol(kTarget)]: WebSocket {
+
+    _events: [Object: null prototype] {
+
+      error: [Function],
+
+      message: [Function],
+
+      close: [Function],
+
+      open: [Function]
+
+    },
+
+    _eventsCount: 4,
+
+    _maxListeners: undefined,
+
+    _binaryType: 'arraybuffer',
+
+    _closeCode: 1006,
+
+    _closeFrameReceived: false,
+
+    _closeFrameSent: false,
+
+    _closeMessage: <Buffer >,
+
+    _closeTimer: null,
+
+    _errorEmitted: true,
+
+    _extensions: {},
+
+    _paused: false,
+
+    _protocol: '',
+
+    _readyState: 3,
+
+    _receiver: null,
+
+    _sender: null,
+
+    _socket: null,
+
+    _bufferedAmount: 0,
+
+    _isServer: false,
+
+    _redirects: 0,
+
+    _autoPong: true,
+
+    _url: 'wss://db/v2',
+
+    _req: null,
+
+    [Symbol(shapeMode)]: false,
+
+    [Symbol(kCapture)]: false
+
+  },
+
+  [Symbol(kType)]: 'error',
+
+  [Symbol(kError)]: Error: connect ECONNREFUSED 192.168.192.2:443
+
+      at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1611:16) {
+
+    errno: -111,
+
+    code: 'ECONNREFUSED',
+
+    syscall: 'connect',
+
+    address: '192.168.192.2',
+
+    port: 443
+
+  },
+
+  [Symbol(kMessage)]: 'connect ECONNREFUSED 192.168.192.2:443'
+
+}
+
+12:43:16 PM [express] POST /api/auth/login 500 in 2ms :: {"message":"Server error during login"}
+
+Registration error: ErrorEvent {
+
+  [Symbol(kTarget)]: WebSocket {
+
+    _events: [Object: null prototype] {
+
+      error: [Function],
+
+      message: [Function],
+
+      close: [Function],
+
+      open: [Function]
+
+    },
+
+    _eventsCount: 4,
+
+    _maxListeners: undefined,
+
+    _binaryType: 'arraybuffer',
+
+    _closeCode: 1006,
+
+    _closeFrameReceived: false,
+
+    _closeFrameSent: false,
+
+    _closeMessage: <Buffer >,
+
+    _closeTimer: null,
+
+    _errorEmitted: true,
+
+    _extensions: {},
+
+    _paused: false,
+
+    _protocol: '',
+
+    _readyState: 3,
+
+    _receiver: null,
+
+    _sender: null,
+
+    _socket: null,
+
+    _bufferedAmount: 0,
+
+    _isServer: false,
+
+    _redirects: 0,
+
+    _autoPong: true,
+
+    _url: 'wss://db/v2',
+
+    _req: null,
+
+    [Symbol(shapeMode)]: false,
+
+    [Symbol(kCapture)]: false
+
+  },
+
+  [Symbol(kType)]: 'error',
+
+  [Symbol(kError)]: Error: connect ECONNREFUSED 192.168.192.2:443
+
+      at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1611:16) {
+
+    errno: -111,
+
+    code: 'ECONNREFUSED',
+
+    syscall: 'connect',
+
+    address: '192.168.192.2',
+
+    port: 443
+
+  },
+
+  [Symbol(kMessage)]: 'connect ECONNREFUSED 192.168.192.2:443'
+
+}
+
+12:44:05 PM [express] POST /api/auth/register 500 in 2ms :: {"message":"Server error during registrat…
+
+Registration error: ErrorEvent {
+
+  [Symbol(kTarget)]: WebSocket {
+
+    _events: [Object: null prototype] {
+
+      error: [Function],
+
+      message: [Function],
+
+      close: [Function],
+
+      open: [Function]
+
+    },
+
+    _eventsCount: 4,
+
+    _maxListeners: undefined,
+
+    _binaryType: 'arraybuffer',
+
+    _closeCode: 1006,
+
+    _closeFrameReceived: false,
+
+    _closeFrameSent: false,
+
+    _closeMessage: <Buffer >,
+
+    _closeTimer: null,
+
+    _errorEmitted: true,
+
+    _extensions: {},
+
+    _paused: false,
+
+    _protocol: '',
+
+    _readyState: 3,
+
+    _receiver: null,
+
+    _sender: null,
+
+    _socket: null,
+
+    _bufferedAmount: 0,
+
+    _isServer: false,
+
+    _redirects: 0,
+
+    _autoPong: true,
+
+    _url: 'wss://db/v2',
+
+    _req: null,
+
+    [Symbol(shapeMode)]: false,
+
+    [Symbol(kCapture)]: false
+
+  },
+
+  [Symbol(kType)]: 'error',
+
+  [Symbol(kError)]: Error: connect ECONNREFUSED 192.168.192.2:443
+
+      at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1611:16) {
+
+    errno: -111,
+
+    code: 'ECONNREFUSED',
+
+    syscall: 'connect',
+
+    address: '192.168.192.2',
+
+    port: 443
+
+  },
+
+  [Symbol(kMessage)]: 'connect ECONNREFUSED 192.168.192.2:443'
+
+}
+
+12:49:11 PM [express] POST /api/auth/register 500 in 2ms :: {"message":"Server error during registrat…

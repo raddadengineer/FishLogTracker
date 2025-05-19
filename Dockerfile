@@ -1,30 +1,25 @@
-FROM node:20-slim
+FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy package.json and package-lock.json
+# Install dependencies first (for better caching)
 COPY package*.json ./
+RUN npm ci
 
-# Install dependencies
-RUN npm install
-
-# Copy the rest of the application
+# Copy application code
 COPY . .
 
 # Build the application
 RUN npm run build
 
-# Expose the port the app runs on
+# Add database setup script
+COPY --chmod=755 docker-entrypoint.sh /docker-entrypoint.sh
+
+# Expose the application port
 EXPOSE 5000
 
-# Set environment variables
-ENV NODE_ENV=production
+# Set the entrypoint script to handle database migrations
+ENTRYPOINT ["/docker-entrypoint.sh"]
 
-# Create a non-root user
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 appuser
-RUN chown -R appuser:nodejs /app
-USER appuser
-
-# Command to run the application
+# Start the application
 CMD ["npm", "start"]

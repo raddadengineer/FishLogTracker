@@ -2,6 +2,9 @@ FROM node:20-alpine
 
 WORKDIR /app
 
+# Install PostgreSQL client for database initialization checks
+RUN apk add --no-cache postgresql-client
+
 # Install dependencies first (for better caching)
 COPY package*.json ./
 RUN npm ci

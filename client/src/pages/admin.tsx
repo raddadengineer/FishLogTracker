@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, CheckCircle, Shield, UserCheck, Users, Filter, Eye, Edit, Trash2, Check } from "lucide-react";
+import { AlertTriangle, CheckCircle, Shield, UserCheck, Users, Filter, Eye, Edit, Trash2, Check, Download, Upload, Database, FileText, AlertCircle } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { useToast } from "@/hooks/use-toast";
@@ -14,6 +14,8 @@ import { formatDate } from "@/lib/utils";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { getFishSpeciesById } from "@/lib/fishSpecies";
 import { apiRequest } from "@/lib/queryClient";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function AdminPage() {
   const { user } = useAuth();
@@ -23,6 +25,9 @@ export default function AdminPage() {
   const [userRoleEdit, setUserRoleEdit] = useState<{id: string, role: string} | null>(null);
   const [selectedCatchId, setSelectedCatchId] = useState<number | null>(null);
   const [catchDetailsOpen, setCatchDetailsOpen] = useState(false);
+  const [exportStatus, setExportStatus] = useState<string>('idle');
+  const [importStatus, setImportStatus] = useState<string>('idle');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch users for admin dashboard
   const { data: users = [], isLoading: isUsersLoading } = useQuery({
@@ -192,6 +197,125 @@ export default function AdminPage() {
     deleteCatchMutation.mutate(catchId);
   };
 
+  // Database export mutation
+  const exportDatabaseMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/admin/export', {
+        method: 'GET',
+        headers: {
+          'x-auth-user-id': (user as any)?.id || '',
+          'x-auth-user-role': (user as any)?.role || ''
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to export database');
+      }
+      
+      return response.blob();
+    },
+    onSuccess: (blob) => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `fish-tracker-backup-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      setExportStatus('success');
+      toast({
+        title: 'Success',
+        description: 'Database exported successfully',
+      });
+    },
+    onError: (error) => {
+      setExportStatus('error');
+      toast({
+        title: 'Error',
+        description: `Failed to export database: ${error.message}`,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Database import mutation
+  const importDatabaseMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('backup', file);
+      
+      const response = await fetch('/api/admin/import', {
+        method: 'POST',
+        headers: {
+          'x-auth-user-id': (user as any)?.id || '',
+          'x-auth-user-role': (user as any)?.role || ''
+        },
+        body: formData
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to import database');
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setImportStatus('success');
+      queryClient.invalidateQueries();
+      toast({
+        title: 'Success',
+        description: `Database imported successfully. Restored ${data.recordsImported} records.`,
+      });
+    },
+    onError: (error) => {
+      setImportStatus('error');
+      toast({
+        title: 'Error',
+        description: `Failed to import database: ${error.message}`,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Handle database export
+  const handleExportDatabase = () => {
+    setExportStatus('loading');
+    exportDatabaseMutation.mutate();
+  };
+
+  // Handle database import
+  const handleImportDatabase = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  // Handle file selection for import
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (!file.name.endsWith('.json')) {
+        toast({
+          title: 'Error',
+          description: 'Please select a valid JSON backup file',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      setImportStatus('loading');
+      importDatabaseMutation.mutate(file);
+    }
+    
+    // Reset the input
+    if (event.target) {
+      event.target.value = '';
+    }
+  };
+
   // Setup admin account if none exists
   const handleSetupAdmin = async () => {
     setAdminSetupStatus('loading');
@@ -317,6 +441,7 @@ export default function AdminPage() {
           <TabsList className="mb-4">
             <TabsTrigger value="users">User Management</TabsTrigger>
             <TabsTrigger value="catches">Catch Verification</TabsTrigger>
+            <TabsTrigger value="data">Data Management</TabsTrigger>
           </TabsList>
           
           {/* Users Tab */}
@@ -558,6 +683,163 @@ export default function AdminPage() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+          </TabsContent>
+          
+          {/* Data Management Tab */}
+          <TabsContent value="data">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Database Export */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Download className="h-5 w-5" />
+                    Export Database
+                  </CardTitle>
+                  <CardDescription>
+                    Download a complete backup of all application data including users, catches, lakes, and comments.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Database className="h-4 w-4" />
+                      <span>Includes all tables and relationships</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <FileText className="h-4 w-4" />
+                      <span>Downloaded as JSON format</span>
+                    </div>
+                    <Button 
+                      onClick={handleExportDatabase}
+                      disabled={exportStatus === 'loading'}
+                      className="w-full"
+                    >
+                      {exportStatus === 'loading' ? (
+                        <>
+                          <Download className="mr-2 h-4 w-4 animate-pulse" />
+                          Exporting...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="mr-2 h-4 w-4" />
+                          Export Database
+                        </>
+                      )}
+                    </Button>
+                    
+                    {exportStatus === 'success' && (
+                      <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-2 rounded">
+                        <CheckCircle className="h-4 w-4" />
+                        <span>Database exported successfully!</span>
+                      </div>
+                    )}
+                    
+                    {exportStatus === 'error' && (
+                      <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 p-2 rounded">
+                        <AlertCircle className="h-4 w-4" />
+                        <span>Failed to export database</span>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Database Import */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Upload className="h-5 w-5" />
+                    Import Database
+                  </CardTitle>
+                  <CardDescription>
+                    Restore data from a previously exported backup file. This will replace existing data.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 p-2 rounded">
+                      <AlertTriangle className="h-4 w-4" />
+                      <span>Warning: This will overwrite existing data</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <FileText className="h-4 w-4" />
+                      <span>Accepts JSON backup files only</span>
+                    </div>
+                    
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".json"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                    />
+                    
+                    <Button 
+                      onClick={handleImportDatabase}
+                      disabled={importStatus === 'loading'}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      {importStatus === 'loading' ? (
+                        <>
+                          <Upload className="mr-2 h-4 w-4 animate-pulse" />
+                          Importing...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="mr-2 h-4 w-4" />
+                          Select Backup File
+                        </>
+                      )}
+                    </Button>
+                    
+                    {importStatus === 'success' && (
+                      <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-2 rounded">
+                        <CheckCircle className="h-4 w-4" />
+                        <span>Database imported successfully!</span>
+                      </div>
+                    )}
+                    
+                    {importStatus === 'error' && (
+                      <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 p-2 rounded">
+                        <AlertCircle className="h-4 w-4" />
+                        <span>Failed to import database</span>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Additional Info */}
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5" />
+                  Important Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-start gap-2">
+                    <span className="font-semibold">•</span>
+                    <span>Export data regularly to prevent loss during app rebuilds or updates</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="font-semibold">•</span>
+                    <span>Backup files contain all user data, catches, and system information</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="font-semibold">•</span>
+                    <span>Import will completely replace existing data - use with caution</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="font-semibold">•</span>
+                    <span>Files are downloaded with timestamp: fish-tracker-backup-YYYY-MM-DD.json</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

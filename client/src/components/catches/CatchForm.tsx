@@ -213,72 +213,53 @@ export default function CatchForm({ catchToEdit, onSuccess }: CatchFormProps) {
     setIsSaving(true);
     try {
       if (isOnline) {
-        // Create form data for multipart upload
+        // Create form data for multipart upload including photos
         const formData = new FormData();
         
+        // Add user ID
+        const userId = localStorage.getItem('currentUserId') || '32a4819a-ee2b-4e91-aa42-d313eb2214ba';
+        formData.append('userId', userId);
+        
         // Append all form fields
-        Object.entries(data).forEach(([key, value]) => {
-          if (value !== undefined && value !== null) {
-            formData.append(key, value.toString());
-          }
-        });
+        formData.append('species', data.species);
+        formData.append('size', data.size.toString());
+        
+        if (data.weight) formData.append('weight', data.weight.toString());
+        if (data.lakeName) formData.append('lakeName', data.lakeName);
+        if (data.lure) formData.append('lure', data.lure);
+        if (data.depth) formData.append('depth', data.depth.toString());
+        if (data.temperature) formData.append('temperature', data.temperature.toString());
+        if (data.latitude) formData.append('latitude', data.latitude.toString());
+        if (data.longitude) formData.append('longitude', data.longitude.toString());
+        if (data.comments) formData.append('comments', data.comments);
         
         // Add weather data if available
         if (weatherData) {
           formData.append('weatherData', JSON.stringify(weatherData));
         }
         
-        // Add user ID from localStorage for authentication
-        const userId = localStorage.getItem('currentUserId');
-        if (userId) {
-          formData.append('userId', userId);
-        }
+        // Append catch date
+        formData.append('catchDate', new Date().toISOString());
         
         // Append all photos
-        photos.forEach((photo, index) => {
+        photos.forEach((photo) => {
           formData.append('photos', photo);
         });
-        
-        // Create simplified data with proper formatting
-        const simplifiedData = {
-          userId: userId || '32a4819a-ee2b-4e91-aa42-d313eb2214ba', // Use a default Guest ID if not logged in
-          species: data.species,
-          size: data.size.toString(),
-          weight: data.weight ? data.weight.toString() : null,
-          lakeName: data.lakeName || null,
-          lure: data.lure || null,
-          depth: data.depth ? data.depth.toString() : null,
-          temperature: data.temperature ? data.temperature.toString() : null,
-          latitude: data.latitude || null,
-          longitude: data.longitude || null,
-          comments: data.comments || null,
-          photos: [],  // Prepare empty photos array
-          weatherData: weatherData || null,
-          catchDate: new Date().toISOString()
-        };
         
         let response;
         
         if (catchToEdit) {
-          // For edit, use the direct API that doesn't require authentication
-          response = await fetch('/api/direct-catch/update', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              ...simplifiedData,
-              id: catchToEdit.id // Include catch ID for the update
-            })
+          // For edit, add the catch ID
+          formData.append('id', catchToEdit.id.toString());
+          response = await fetch('/api/catches', {
+            method: 'PATCH',
+            body: formData
           });
         } else {
-          // If creating a new catch, use direct-catch API
-          response = await fetch('/api/direct-catch/create', {
+          // Create new catch using multipart form data
+          response = await fetch('/api/catches', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(simplifiedData)
+            body: formData
           });
         }
         

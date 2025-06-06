@@ -306,10 +306,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Following routes
-  app.post("/api/users/:id/follow", isAuthenticated, async (req, res) => {
+  app.post("/api/users/:id/follow", allowPublicAccess, async (req, res) => {
     try {
       const followingId = req.params.id;
-      const followerId = req.headers['user-id'] as string;
+      const followerId = req.body.followerId || req.headers['user-id'] as string;
+      
+      if (!followerId) {
+        return res.status(400).json({ message: "Follower ID is required" });
+      }
       
       if (followerId === followingId) {
         return res.status(400).json({ message: "You cannot follow yourself" });
@@ -468,6 +472,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching catch:", error);
       res.status(500).json({ message: "Failed to fetch catch" });
+    }
+  });
+
+  // Add PATCH route for catch updates
+  app.patch("/api/catches/:id", allowPublicAccess, upload.array("photos", 5), async (req, res) => {
+    try {
+      const catchId = parseInt(req.params.id);
+      const userId = req.body.userId || req.headers['user-id'] as string;
+      
+      // Get existing catch to check ownership
+      const existingCatch = await storage.getCatch(catchId);
+      if (!existingCatch) {
+        return res.status(404).json({ message: "Catch not found" });
+      }
+      
+      // Process uploaded photos
+      const files = req.files as Express.Multer.File[];
+      if (files && files.length > 0) {
+        req.body.photos = files.map(file => `/uploads/${file.filename}`);
+      }
+      
+      // Convert string values to numbers
+      if (req.body.size) req.body.size = parseFloat(req.body.size);
+      if (req.body.weight) req.body.weight = parseFloat(req.body.weight);
+      if (req.body.latitude) req.body.latitude = parseFloat(req.body.latitude);
+      if (req.body.longitude) req.body.longitude = parseFloat(req.body.longitude);
+      if (req.body.temperature) req.body.temperature = parseFloat(req.body.temperature);
+      if (req.body.depth) req.body.depth = parseFloat(req.body.depth);
+      if (req.body.lakeId) req.body.lakeId = parseInt(req.body.lakeId);
+      
+      // Update catch
+      const updatedCatch = await storage.updateCatch(catchId, req.body);
+      
+      if (!updatedCatch) {
+        return res.status(404).json({ message: "Catch not found" });
+      }
+      
+      res.json(updatedCatch);
+    } catch (error) {
+      console.error("Error updating catch:", error);
+      res.status(500).json({ message: "Failed to update catch" });
     }
   });
 

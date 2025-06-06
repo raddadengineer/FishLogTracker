@@ -327,10 +327,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/users/:id/follow", isAuthenticated, async (req, res) => {
+  app.delete("/api/users/:id/follow", allowPublicAccess, async (req, res) => {
     try {
       const followingId = req.params.id;
-      const followerId = req.headers['user-id'] as string;
+      const followerId = req.body.followerId || req.headers['user-id'] as string || req.query.followerId as string;
+      
+      if (!followerId) {
+        return res.status(400).json({ message: "Follower ID is required" });
+      }
       
       await storage.unfollowUser(followerId, followingId);
       res.status(200).json({ message: "Successfully unfollowed user" });
@@ -340,7 +344,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/users/:id/followers", isAuthenticated, async (req, res) => {
+  app.get("/api/users/:id/followers", allowPublicAccess, async (req, res) => {
     try {
       const userId = req.params.id;
       const followers = await storage.getUserFollowers(userId);
@@ -351,7 +355,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/users/:id/following", isAuthenticated, async (req, res) => {
+  app.get("/api/users/:id/following", allowPublicAccess, async (req, res) => {
     try {
       const userId = req.params.id;
       const following = await storage.getUserFollowing(userId);
@@ -362,10 +366,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/users/:id/is-following", isAuthenticated, async (req, res) => {
+  app.get("/api/users/:id/is-following", allowPublicAccess, async (req, res) => {
     try {
       const followingId = req.params.id;
-      const followerId = req.headers['user-id'] as string;
+      const followerId = req.query.followerId as string || req.headers['user-id'] as string;
+      
+      if (!followerId) {
+        return res.json({ isFollowing: false });
+      }
       
       const isFollowing = await storage.isFollowing(followerId, followingId);
       res.json({ isFollowing });

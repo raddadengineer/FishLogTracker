@@ -10,6 +10,9 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Serve uploaded files statically
+app.use('/uploads', express.static('uploads'));
+
 // Set up session middleware with PostgreSQL session store for production
 if (process.env.NODE_ENV === 'production') {
   const pgStore = connectPg(session);

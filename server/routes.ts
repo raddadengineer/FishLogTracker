@@ -387,8 +387,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Catch routes
   app.post("/api/catches", allowPublicAccess, upload.array("photos", 5), async (req, res) => {
     try {
-      // Add user ID from header
-      req.body.userId = req.headers['user-id'] as string;
+      // Add user ID from header or body (FormData sends it in body)
+      req.body.userId = req.headers['user-id'] as string || req.body.userId;
       
       // Process uploaded photos
       const files = req.files as Express.Multer.File[];
@@ -407,13 +407,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Convert string values to numbers and handle date conversion
-      if (req.body.size) req.body.size = parseFloat(req.body.size);
-      if (req.body.weight) req.body.weight = parseFloat(req.body.weight);
+      // Convert values to proper types for schema validation
+      // Keep size as string since it's a decimal field in the schema
+      if (req.body.size) req.body.size = req.body.size.toString();
+      if (req.body.weight) req.body.weight = req.body.weight.toString();
       if (req.body.latitude) req.body.latitude = parseFloat(req.body.latitude);
       if (req.body.longitude) req.body.longitude = parseFloat(req.body.longitude);
-      if (req.body.temperature) req.body.temperature = parseFloat(req.body.temperature);
-      if (req.body.depth) req.body.depth = parseFloat(req.body.depth);
+      if (req.body.temperature) req.body.temperature = req.body.temperature.toString();
+      if (req.body.depth) req.body.depth = req.body.depth.toString();
       if (req.body.lakeId) req.body.lakeId = parseInt(req.body.lakeId);
       
       // Convert catchDate string to Date object

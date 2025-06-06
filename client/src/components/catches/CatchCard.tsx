@@ -11,6 +11,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { getFishSpeciesById } from "@/lib/fishSpecies";
+import { getPhotoUrl, hasPhotos } from "@/lib/photoUtils";
 import { EditCatchDialog } from "./EditCatchDialog";
 
 interface CatchCardProps {
@@ -181,9 +182,9 @@ export default function CatchCard({ catchData }: CatchCardProps) {
       </CardHeader>
       
       <div className="relative">
-        {catchData.photos && catchData.photos.length > 0 ? (
+        {hasPhotos(catchData) ? (
           <img 
-            src={catchData.photos[0]} 
+            src={getPhotoUrl(catchData, 0) || ''} 
             alt={`${catchData.species} catch`} 
             className="w-full h-48 object-cover"
           />

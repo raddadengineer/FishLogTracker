@@ -1,0 +1,131 @@
+Using user ID from headers: admin-user-id
+
+Error fetching catches: error: column catches.photo_data does not exist
+
+    at /app/node_modules/pg-pool/index.js:45:11
+
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+
+    at async file:///app/node_modules/drizzle-orm/node-postgres/session.js:83:22
+
+    at async DatabaseStorage.getAllCatches (file:///app/dist/index.js:379:25)
+
+    at async file:///app/dist/index.js:1704:24 {
+
+  length: 117,
+
+  severity: 'ERROR',
+
+  code: '42703',
+
+  detail: undefined,
+
+  hint: undefined,
+
+  position: '303',
+
+  internalPosition: undefined,
+
+  internalQuery: undefined,
+
+  where: undefined,
+
+  schema: undefined,
+
+  table: undefined,
+
+  column: undefined,
+
+  dataType: undefined,
+
+  constraint: undefined,
+
+  file: 'parse_relation.c',
+
+  line: '3665',
+
+  routine: 'errorMissingColumn'
+
+}
+
+1:00:52 PM [express] GET /api/catches 500 in 6ms :: {"message":"Failed to fetch catches"}
+
+Authentication check - Session data: Session {
+
+  cookie: {
+
+    path: '/',
+
+    _expires: 2025-06-13T13:00:52.005Z,
+
+    originalMaxAge: 604800000,
+
+    httpOnly: true,
+
+    secure: true,
+
+    sameSite: 'lax'
+
+  }
+
+}
+
+Using fallback auth from headers: admin-user-id
+
+Admin authenticated via headers: admin-user-id
+
+1:00:52 PM [express] GET /api/admin/users 200 in 4ms :: [{"id":"admin-user-id","username":"admin","e…
+
+Admin authenticated via headers: admin-user-id
+
+Starting database export...
+
+Error exporting database: error: column "photo_data" does not exist
+
+    at /app/node_modules/pg-pool/index.js:45:11
+
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+
+    at async file:///app/node_modules/drizzle-orm/node-postgres/session.js:83:22
+
+    at async Promise.all (index 1)
+
+    at async file:///app/dist/index.js:1295:69 {
+
+  length: 111,
+
+  severity: 'ERROR',
+
+  code: '42703',
+
+  detail: undefined,
+
+  hint: undefined,
+
+  position: '163',
+
+  internalPosition: undefined,
+
+  internalQuery: undefined,
+
+  where: undefined,
+
+  schema: undefined,
+
+  table: undefined,
+
+  column: undefined,
+
+  dataType: undefined,
+
+  constraint: undefined,
+
+  file: 'parse_relation.c',
+
+  line: '3665',
+
+  routine: 'errorMissingColumn'
+
+}
+
+1:00:55 PM [express] GET /api/admin/export 500 in 16ms :: {"message":"Failed to export database"}

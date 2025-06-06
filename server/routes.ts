@@ -88,19 +88,7 @@ directLeaderboardRouter.get('/global', async (req, res) => {
 
 // Configure multer for file uploads
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: function (req, file, cb) {
-      const uploadDir = path.join(process.cwd(), "uploads");
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      }
-      cb(null, uploadDir);
-    },
-    filename: function (req, file, cb) {
-      const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-      cb(null, file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname));
-    },
-  }),
+  storage: multer.memoryStorage(), // Store in memory for database upload
   limits: {
     fileSize: 50 * 1024 * 1024, // 50MB limit
     files: 5, // Maximum 5 files
@@ -390,10 +378,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add user ID from header or body (FormData sends it in body)
       req.body.userId = req.headers['user-id'] as string || req.body.userId;
       
-      // Process uploaded photos
+      // Process uploaded photos and convert to base64 for database storage
       const files = req.files as Express.Multer.File[];
       if (files && files.length > 0) {
-        req.body.photos = files.map(file => `/uploads/${file.filename}`);
+        const photoData = files.map(file => ({
+          id: Date.now() + Math.random(),
+          filename: file.filename,
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+          size: file.size,
+          data: file.buffer.toString('base64')
+        }));
+        req.body.photoData = photoData;
+        // Keep photos array for backward compatibility
+        req.body.photos = photoData.map(photo => `data:${photo.mimeType};base64,${photo.data}`);
       }
       
       // Get weather data if coordinates are provided

@@ -112,7 +112,13 @@ export const catches = pgTable("catches", {
   lure: varchar("lure"), // lure or bait used
   weatherData: json("weather_data"),
   comments: text("comments"),
-  photoData: json("photo_data"), // Store photo metadata and base64 data
+  photoData: json("photo_data").$type<Array<{
+    id: string;
+    filename: string;
+    mimeType: string;
+    size: number;
+    data: string;
+  }>>(), // Store photo metadata and base64 data
   catchDate: timestamp("catch_date").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

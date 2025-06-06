@@ -6,3 +6,7 @@ npm-debug.log
 dist
 .DS_Store
 .vscode
+uploads
+*.log
+.replit
+attached_assets

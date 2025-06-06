@@ -10,8 +10,34 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Serve uploaded files statically
+// Serve uploaded files statically (legacy)
 app.use('/uploads', express.static('uploads'));
+
+// Photo serving from database
+app.get("/api/photos/:catchId/:photoId", async (req, res) => {
+  try {
+    const { catchId, photoId } = req.params;
+    const { storage } = await import('./storage');
+    const catchData = await storage.getCatch(parseInt(catchId));
+    
+    if (!catchData || !catchData.photoData) {
+      return res.status(404).json({ message: "Photo not found" });
+    }
+
+    const photo = catchData.photoData.find((p: any) => p.id == photoId);
+    if (!photo) {
+      return res.status(404).json({ message: "Photo not found" });
+    }
+
+    const buffer = Buffer.from(photo.data, 'base64');
+    res.setHeader('Content-Type', photo.mimeType);
+    res.setHeader('Content-Length', buffer.length);
+    res.send(buffer);
+  } catch (error) {
+    console.error("Error serving photo:", error);
+    res.status(500).json({ message: "Failed to serve photo" });
+  }
+});
 
 // Set up session middleware with PostgreSQL session store for production
 if (process.env.NODE_ENV === 'production') {

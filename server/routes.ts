@@ -102,7 +102,8 @@ const upload = multer({
     },
   }),
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
+    fileSize: 50 * 1024 * 1024, // 50MB limit
+    files: 5, // Maximum 5 files
   },
   fileFilter: function (req, file, cb) {
     if (file.mimetype.startsWith("image/")) {

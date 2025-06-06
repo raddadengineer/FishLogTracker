@@ -152,12 +152,70 @@ export default function CatchForm({ catchToEdit, onSuccess }: CatchFormProps) {
     }
   };
 
+  // Compress image before upload
+  const compressImage = (file: File): Promise<File> => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d')!;
+      const img = new Image();
+      
+      img.onload = () => {
+        // Calculate new dimensions (max 1920x1080 or maintain aspect ratio)
+        const maxWidth = 1920;
+        const maxHeight = 1080;
+        let { width, height } = img;
+        
+        if (width > height) {
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = (width * maxHeight) / height;
+            height = maxHeight;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw and compress
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const compressedFile = new File([blob], file.name, {
+              type: 'image/jpeg',
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          } else {
+            resolve(file); // Fallback to original if compression fails
+          }
+        }, 'image/jpeg', 0.8); // 80% quality
+      };
+      
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   // Handle photo upload
-  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files) {
-      const newPhotos = Array.from(files);
-      setPhotos((prev) => [...prev, ...newPhotos]);
+      const fileArray = Array.from(files);
+      
+      // Compress each image
+      const compressedPhotos = await Promise.all(
+        fileArray.map(async (file) => {
+          if (file.size > 2 * 1024 * 1024) { // Only compress files larger than 2MB
+            return await compressImage(file);
+          }
+          return file;
+        })
+      );
+      
+      setPhotos((prev) => [...prev, ...compressedPhotos]);
     }
   };
 

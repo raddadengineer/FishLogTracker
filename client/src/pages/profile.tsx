@@ -94,9 +94,10 @@ export default function ProfilePage() {
   });
 
   // Fetch following status if looking at someone else's profile
+  const currentUserId = localStorage.getItem('currentUserId');
   const { data: followStatus, isLoading: isLoadingFollowStatus } = useQuery({
-    queryKey: [`/api/users/${userId}/is-following`],
-    enabled: isAuthenticated && !!userId && !isOwnProfile,
+    queryKey: [`/api/users/${userId}/is-following?followerId=${currentUserId}`],
+    enabled: !!currentUserId && !!userId && !isOwnProfile,
   });
 
   // Set initial following state from API response
@@ -151,7 +152,9 @@ export default function ProfilePage() {
 
   // Handle follow/unfollow action
   const handleFollowAction = async () => {
-    if (!isAuthenticated) {
+    const currentUserId = localStorage.getItem('currentUserId');
+    
+    if (!currentUserId) {
       toast({
         title: "Authentication Required",
         description: "Please log in to follow other users",
@@ -165,7 +168,7 @@ export default function ProfilePage() {
     try {
       if (following) {
         // Unfollow
-        await apiRequest('DELETE', `/api/users/${userId}/follow`, null);
+        await apiRequest('DELETE', `/api/users/${userId}/follow?followerId=${currentUserId}`, null);
         setFollowing(false);
         toast({
           title: "Unfollowed",
@@ -173,7 +176,7 @@ export default function ProfilePage() {
         });
       } else {
         // Follow
-        await apiRequest('POST', `/api/users/${userId}/follow`, null);
+        await apiRequest('POST', `/api/users/${userId}/follow`, { followerId: currentUserId });
         setFollowing(true);
         toast({
           title: "Following",
@@ -183,7 +186,7 @@ export default function ProfilePage() {
       
       // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: ['/api/users', userId, 'followers'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/users', userId, 'is-following'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}/is-following`] });
       
     } catch (error) {
       toast({

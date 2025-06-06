@@ -407,7 +407,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Convert string values to numbers
+      // Convert string values to numbers and handle date conversion
       if (req.body.size) req.body.size = parseFloat(req.body.size);
       if (req.body.weight) req.body.weight = parseFloat(req.body.weight);
       if (req.body.latitude) req.body.latitude = parseFloat(req.body.latitude);
@@ -415,6 +415,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (req.body.temperature) req.body.temperature = parseFloat(req.body.temperature);
       if (req.body.depth) req.body.depth = parseFloat(req.body.depth);
       if (req.body.lakeId) req.body.lakeId = parseInt(req.body.lakeId);
+      
+      // Convert catchDate string to Date object
+      if (req.body.catchDate) {
+        req.body.catchDate = new Date(req.body.catchDate);
+      }
+      
+      // Parse weatherData if it's a string
+      if (req.body.weatherData && typeof req.body.weatherData === 'string') {
+        try {
+          req.body.weatherData = JSON.parse(req.body.weatherData);
+        } catch (e) {
+          req.body.weatherData = null;
+        }
+      }
       
       // Validate using schema
       const result = insertCatchSchema.safeParse(req.body);

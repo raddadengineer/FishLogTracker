@@ -278,7 +278,7 @@ export default function CatchForm({ catchToEdit, onSuccess }: CatchFormProps) {
         const userId = localStorage.getItem('currentUserId') || '32a4819a-ee2b-4e91-aa42-d313eb2214ba';
         formData.append('userId', userId);
         
-        // Append all form fields
+        // Append all form fields with proper validation
         formData.append('species', data.species);
         formData.append('size', data.size.toString());
         
@@ -296,7 +296,7 @@ export default function CatchForm({ catchToEdit, onSuccess }: CatchFormProps) {
           formData.append('weatherData', JSON.stringify(weatherData));
         }
         
-        // Append catch date
+        // Append catch date as ISO string that can be parsed to Date
         formData.append('catchDate', new Date().toISOString());
         
         // Append all photos

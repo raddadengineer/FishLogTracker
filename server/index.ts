@@ -10,8 +10,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Serve uploaded files statically (legacy)
-app.use('/uploads', express.static('uploads'));
+// Legacy file serving removed - now using database storage
 
 // Photo serving from database
 app.get("/api/photos/:catchId/:photoId", async (req, res) => {

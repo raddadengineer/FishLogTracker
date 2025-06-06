@@ -390,8 +390,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           data: file.buffer.toString('base64')
         }));
         req.body.photoData = photoData;
-        // Keep photos array for backward compatibility
-        req.body.photos = photoData.map(photo => `data:${photo.mimeType};base64,${photo.data}`);
+        // Photos now stored in photoData only
       }
       
       // Get weather data if coordinates are provided

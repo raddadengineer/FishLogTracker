@@ -55,6 +55,18 @@ export async function apiRequest(
   return res;
 }
 
+/** Build `/api/...` URL from React Query key: `['/api/users', id, 'stats']` → `/api/users/:id/stats` */
+export function endpointFromQueryKey(queryKey: readonly unknown[]): string {
+  const parts = queryKey
+    .filter((p) => p != null && p !== "")
+    .map((p) => String(p));
+  if (parts.length === 0) return "/";
+  const base = parts[0];
+  if (!base.startsWith("/")) return parts.join("/");
+  if (parts.length === 1) return base;
+  return `${base}/${parts.slice(1).join("/")}`;
+}
+
 type UnauthorizedBehavior = "returnNull" | "throw";
 export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;
@@ -62,9 +74,8 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     try {
-      const endpoint = queryKey[0] as string;
-      console.log(`Fetching from: ${endpoint}`);
-      
+      const endpoint = endpointFromQueryKey(queryKey);
+
       const res = await fetch(endpoint, {
         credentials: "include",
       });

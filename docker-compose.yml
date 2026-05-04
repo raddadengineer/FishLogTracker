@@ -11,6 +11,10 @@ services:
       # Using standard PostgreSQL connection (no WebSockets)
       - DATABASE_URL=postgres://postgres:postgres@db:5432/fishtracker
       - NODE_ENV=production
+      # Required for login/backup over http://localhost — Secure cookies are skipped on HTTP unless this is false
+      - SESSION_COOKIE_SECURE=false
+      # Email-only password reset (no SMTP); see /forgot-password — disable on public internet
+      - ALLOW_EMAIL_ONLY_PASSWORD_RESET=true
       - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY}
       - SESSION_SECRET=fishing_session_secret_key_here
       - PGHOST=db

@@ -100,9 +100,10 @@ export function DataBackupSection() {
       <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
         <p className="font-medium text-foreground mb-1">About backup and sync</p>
         <p>
-          Your catches already live on this app&apos;s server when you are online. Export and import require a normal
-          browser session (sign in with email and password). Use backup to keep a copy you control, move devices, or
-          recover from mistakes.{" "}
+          Your catches already live on this app&apos;s server when you are online. Export and import require an active
+          browser session (you must be signed in; the server must accept session cookies—over plain HTTP such as Docker
+          on localhost, the server should set <span className="font-mono text-foreground">SESSION_COOKIE_SECURE=false</span>
+          ). Use backup to keep a copy you control, move devices, or recover from mistakes.{" "}
           <strong className="text-foreground">Replace mode</strong> is not exposed in the UI yet; merge adds catches
           from the file to your account (duplicates are possible if you import twice).
         </p>

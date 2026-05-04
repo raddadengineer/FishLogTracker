@@ -6,6 +6,14 @@ import { v4 as uuidv4 } from "uuid";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
 
+/** Browsers do not send Secure cookies on plain HTTP. Default: Secure in production only; override with SESSION_COOKIE_SECURE=true|false. */
+function sessionCookieSecure(): boolean {
+  const v = process.env.SESSION_COOKIE_SECURE;
+  if (v === "true") return true;
+  if (v === "false") return false;
+  return process.env.NODE_ENV === "production";
+}
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -57,7 +65,7 @@ if (process.env.NODE_ENV === 'production') {
     saveUninitialized: false,
     cookie: {
       maxAge: sessionTtl * 1000, // convert seconds to milliseconds
-      secure: true,
+      secure: sessionCookieSecure(),
       httpOnly: true,
       sameSite: 'lax'
     },

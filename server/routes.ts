@@ -19,8 +19,9 @@ import { eq } from "drizzle-orm";
 import {
   login,
   register,
-  logout, 
+  logout,
   getCurrentUser,
+  resetPasswordByEmail,
   requireSessionAuth,
   requireAdminSession,
   requireModeratorOrAdminSession,
@@ -198,6 +199,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Drive picker uses VITE_GOOGLE_CLIENT_ID; full OAuth redirect is not wired unless explicitly enabled.
     res.json({ enabled: process.env.GOOGLE_OAUTH_ENABLED === "true" });
   });
+
+  app.get("/api/auth/password-reset/status", (_req, res) => {
+    res.json({ enabled: process.env.ALLOW_EMAIL_ONLY_PASSWORD_RESET === "true" });
+  });
+
+  app.post("/api/auth/reset-password", resetPasswordByEmail);
   
   // Add profile update endpoint
   app.patch('/api/user/profile', requireSessionAuth, async (req, res) => {

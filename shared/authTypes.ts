@@ -15,6 +15,18 @@ export const registerSchema = z.object({
   path: ["confirmPassword"],
 });
 
+/** Self-hosted reset without SMTP — weak unless combined with network restrictions; gated by ALLOW_EMAIL_ONLY_PASSWORD_RESET */
+export const resetPasswordByEmailSchema = z
+  .object({
+    email: z.string().email("Please enter a valid email address"),
+    newPassword: z.string().min(6, "Password must be at least 6 characters"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
 export const updateProfileSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters").optional(),
   email: z.string().email("Please enter a valid email address").optional(),
@@ -46,4 +58,5 @@ export const updateProfileSchema = z.object({
 // Types
 export type LoginCredentials = z.infer<typeof loginSchema>;
 export type RegisterData = z.infer<typeof registerSchema>;
+export type ResetPasswordByEmailInput = z.infer<typeof resetPasswordByEmailSchema>;
 export type UpdateProfileData = z.infer<typeof updateProfileSchema>;

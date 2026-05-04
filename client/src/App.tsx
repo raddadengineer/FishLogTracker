@@ -10,6 +10,7 @@ import ProfilePage from "@/pages/profile";
 import LeaderboardPage from "@/pages/leaderboard";
 import AdminPage from "@/pages/admin";
 import LoginPage from "@/pages/login";
+import ForgotPasswordPage from "@/pages/forgot-password";
 import RegisterPage from "@/pages/register";
 import TestCatchPage from "@/pages/test-catch";
 import EditProfilePage from "@/pages/edit-profile";
@@ -40,6 +41,7 @@ function Router() {
       <Switch>
         <Route path="/" component={Home} />
         <Route path="/login" component={LoginPage} />
+        <Route path="/forgot-password" component={ForgotPasswordPage} />
         <Route path="/register" component={RegisterPage} />
         <Route path="/map" component={MapPage} />
         <Route path="/profile/:id?" component={ProfilePage} />

@@ -1,11 +1,33 @@
 import { Request, Response, NextFunction } from "express";
 import { db } from "./db";
 import { users } from "@shared/schema";
-import { LoginCredentials, RegisterData } from "@shared/authTypes";
+import {
+  LoginCredentials,
+  RegisterData,
+  resetPasswordByEmailSchema,
+} from "@shared/authTypes";
 import { storage } from "./storage";
 import bcrypt from "bcrypt";
 import { v4 as uuidv4 } from "uuid";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
+
+/** Without SMTP, reset is “know the email → set a new password”. Enable only for trusted / private deployments. */
+export function isEmailOnlyPasswordResetEnabled(): boolean {
+  return process.env.ALLOW_EMAIL_ONLY_PASSWORD_RESET === "true";
+}
+
+const RESET_RL_MS = 15 * 60 * 1000;
+const RESET_RL_MAX = 10;
+const resetPasswordAttempts = new Map<string, number[]>();
+
+function noteResetPasswordAttempt(ip: string): boolean {
+  const now = Date.now();
+  const prev = resetPasswordAttempts.get(ip) ?? [];
+  const recent = prev.filter((t) => now - t < RESET_RL_MS);
+  recent.push(now);
+  resetPasswordAttempts.set(ip, recent);
+  return recent.length <= RESET_RL_MAX;
+}
 
 // Create a session object and add to request
 export function createSession(req: Request, userId: string, role: string) {
@@ -54,7 +76,10 @@ export const requireSessionAuth = (req: Request, res: Response, next: NextFuncti
     }
     return next();
   }
-  return res.status(401).json({ message: "Sign in required. Use email/password sign-in for this action." });
+  return res.status(401).json({
+    message:
+      "Your session cookie was not sent or is invalid. Sign out and sign in again. If you open the app over plain HTTP (for example Docker on localhost), set environment variable SESSION_COOKIE_SECURE=false so the browser can store the session cookie.",
+  });
 };
 
 /** Cookie session + `role === admin` only (no header spoof). */
@@ -178,8 +203,12 @@ export const login = async (req: Request, res: Response) => {
       }
     }
     
-    // Normal user login
-    const [user] = await db.select().from(users).where(eq(users.email, email));
+    // Normal user login (case-insensitive email)
+    const normalizedEmail = email.trim().toLowerCase();
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(sql`LOWER(${users.email}) = ${normalizedEmail}`);
     
     if (!user) {
       return res.status(401).json({ message: "Invalid email or password" });
@@ -209,9 +238,13 @@ export const login = async (req: Request, res: Response) => {
 export const register = async (req: Request, res: Response) => {
   try {
     const { username, email, password } = req.body as RegisterData;
-    
-    // Check if email already exists
-    const [existingEmail] = await db.select().from(users).where(eq(users.email, email));
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Check if email already exists (case-insensitive)
+    const [existingEmail] = await db
+      .select()
+      .from(users)
+      .where(sql`LOWER(${users.email}) = ${normalizedEmail}`);
     if (existingEmail) {
       return res.status(400).json({ message: "Email already in use" });
     }
@@ -229,7 +262,7 @@ export const register = async (req: Request, res: Response) => {
     const [newUser] = await db.insert(users).values({
       id: userId,
       username,
-      email,
+      email: normalizedEmail,
       passwordHash,
       role: "user"
     }).returning();
@@ -283,5 +316,61 @@ export const getCurrentUser = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error fetching current user:", error);
     return res.status(500).json({ message: "Server error fetching user data" });
+  }
+};
+
+export const resetPasswordByEmail = async (req: Request, res: Response) => {
+  const generic = {
+    message:
+      "If an account with that email exists and can be reset this way, your password has been updated. You can sign in with the new password.",
+  };
+
+  try {
+    if (!isEmailOnlyPasswordResetEnabled()) {
+      return res.status(403).json({
+        message: "Password reset without email is disabled on this server.",
+      });
+    }
+
+    const rawIp = req.ip || req.socket.remoteAddress || "unknown";
+    const ip = typeof rawIp === "string" ? rawIp.replace(/^::ffff:/, "") : "unknown";
+    if (!noteResetPasswordAttempt(ip)) {
+      return res.status(429).json({
+        message: "Too many attempts. Try again in about 15 minutes.",
+      });
+    }
+
+    const parsed = resetPasswordByEmailSchema.safeParse(req.body);
+    if (!parsed.success) {
+      const first = parsed.error.issues[0]?.message ?? "Invalid request";
+      return res.status(400).json({ message: first });
+    }
+
+    const { email, newPassword } = parsed.data;
+    const normalized = email.trim().toLowerCase();
+
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(sql`LOWER(${users.email}) = ${normalized}`);
+
+    if (!user?.email) {
+      return res.status(200).json(generic);
+    }
+
+    if (user.role === "admin" || user.role === "moderator") {
+      return res.status(200).json(generic);
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await db
+      .update(users)
+      .set({ passwordHash, updatedAt: new Date() })
+      .where(eq(users.id, user.id));
+
+    return res.status(200).json(generic);
+  } catch (error) {
+    console.error("resetPasswordByEmail:", error);
+    return res.status(500).json({ message: "Could not reset password" });
   }
 };

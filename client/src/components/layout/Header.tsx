@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Bell, Menu, X } from "lucide-react";
 import { getSyncStatus } from "@/lib/localStorageSync";
 import { useAuth } from "@/hooks/useAuth";
+import { getOfflineCatches } from "@/lib/localStorageSync";
 import {
   Sheet,
   SheetClose,
@@ -18,6 +19,9 @@ export default function Header() {
   const { user, isAuthenticated } = useAuth();
   const [syncStatus, setSyncStatus] = useState<'online' | 'offline' | 'syncing'>(
     getSyncStatus()
+  );
+  const [pendingOfflineCount, setPendingOfflineCount] = useState<number>(() =>
+    getOfflineCatches().filter((c) => !c.synced).length,
   );
 
   // Update sync status when online/offline status changes
@@ -37,6 +41,18 @@ export default function Header() {
     return () => {
       window.removeEventListener('online', updateSyncStatus);
       window.removeEventListener('offline', updateSyncStatus);
+    };
+  }, []);
+
+  useEffect(() => {
+    const refresh = () => {
+      setPendingOfflineCount(getOfflineCatches().filter((c) => !c.synced).length);
+    };
+    window.addEventListener("storage", refresh);
+    const id = window.setInterval(refresh, 5000);
+    return () => {
+      window.removeEventListener("storage", refresh);
+      window.clearInterval(id);
     };
   }, []);
 
@@ -110,6 +126,17 @@ export default function Header() {
                         Admin
                       </Link>
                     )}
+                    <Link href="/offline-catches" className="flex items-center justify-between gap-2 p-2 hover:bg-gray-100 rounded-md">
+                      <span className="flex items-center gap-2">
+                        <i className="ri-cloud-off-line"></i>
+                        Offline Catches
+                      </span>
+                      {pendingOfflineCount > 0 ? (
+                        <span className="text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full">
+                          {pendingOfflineCount}
+                        </span>
+                      ) : null}
+                    </Link>
                     <Link href="/settings" className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-md">
                         <i className="ri-settings-line"></i>
                         Settings

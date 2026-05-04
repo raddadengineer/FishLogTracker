@@ -222,6 +222,15 @@ export function registerSyncEventListeners(): void {
   window.addEventListener('offline', () => {
     setSyncStatus('offline');
   });
+
+  // Background Sync (from service worker) triggers this message.
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', async (event) => {
+      if (event?.data?.type === 'SYNC_OFFLINE_CATCHES') {
+        await syncOfflineCatches();
+      }
+    });
+  }
 }
 
 // Initialize sync module with initial status

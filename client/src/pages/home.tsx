@@ -269,7 +269,7 @@ export default function Home() {
               onClick={() => window.location.href = "/map"}
             >
               <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center mb-2">
-                <i className="ri-map-pin-line text-xl text-secondary"></i>
+                <MapPin className="h-5 w-5 text-secondary" />
               </div>
               <span className="text-sm font-medium">Explore Map</span>
             </Button>

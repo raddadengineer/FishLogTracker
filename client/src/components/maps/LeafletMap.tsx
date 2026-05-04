@@ -53,10 +53,12 @@ export default function LeafletMap({
   const catchMarkersRef = useRef<L.LayerGroup | null>(null);
   const lakeMarkersRef = useRef<L.LayerGroup | null>(null);
   const heatLayerRef = useRef<any | null>(null);
+  const userLayerRef = useRef<L.LayerGroup | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-  const { location, getLocation, isLoading: isLocationLoading } = useLocation();
+  const { location, getLocation, startTracking, stopTracking, isTracking, isLoading: isLocationLoading, error: locationError } = useLocation();
   const [showHeatmap, setShowHeatmap] = useState(false);
+  const [followGps, setFollowGps] = useState(false);
 
   // Initialize map
   useEffect(() => {
@@ -87,6 +89,7 @@ export default function LeafletMap({
       // Create layer groups for markers
       catchMarkersRef.current = L.layerGroup().addTo(mapRef.current);
       lakeMarkersRef.current = L.layerGroup().addTo(mapRef.current);
+      userLayerRef.current = L.layerGroup().addTo(mapRef.current);
       
       // Initialize with user location if available
       if (location) {
@@ -111,6 +114,47 @@ export default function LeafletMap({
       }
     };
   }, []);
+
+  // Draw user GPS dot (and optionally follow)
+  useEffect(() => {
+    if (!mapRef.current || !userLayerRef.current) return;
+    userLayerRef.current.clearLayers();
+
+    if (!location) return;
+
+    const dot = L.circleMarker([location.latitude, location.longitude], {
+      radius: 6,
+      color: "#0ea5e9",
+      weight: 2,
+      fillColor: "#38bdf8",
+      fillOpacity: 0.9,
+    });
+    dot.addTo(userLayerRef.current);
+
+    if (location.accuracy && Number.isFinite(location.accuracy)) {
+      const accuracyCircle = L.circle([location.latitude, location.longitude], {
+        radius: location.accuracy,
+        color: "#0ea5e9",
+        weight: 1,
+        fillColor: "#38bdf8",
+        fillOpacity: 0.12,
+      });
+      accuracyCircle.addTo(userLayerRef.current);
+    }
+
+    if (followGps) {
+      mapRef.current.setView([location.latitude, location.longitude], Math.max(mapRef.current.getZoom(), 14));
+    }
+  }, [location, followGps]);
+
+  useEffect(() => {
+    if (!locationError) return;
+    toast({
+      title: "Location Error",
+      description: locationError,
+      variant: "destructive",
+    });
+  }, [locationError, toast]);
 
   // Add catch markers to map
   useEffect(() => {
@@ -239,6 +283,19 @@ export default function LeafletMap({
     setShowHeatmap(!showHeatmap);
   };
 
+  const toggleGps = () => {
+    if (isTracking) {
+      stopTracking();
+      setFollowGps(false);
+      toast({ title: "GPS Off", description: "Stopped live location tracking." });
+      return;
+    }
+
+    startTracking();
+    setFollowGps(true);
+    toast({ title: "GPS On", description: "Live GPS tracking enabled." });
+  };
+
   // Update heatmap layer (uses @linkurious/leaflet-heat; bundled, not window.L)
   const updateHeatmap = () => {
     if (!mapRef.current) return;
@@ -286,6 +343,15 @@ export default function LeafletMap({
           </Button>
           
           <div className="flex space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={toggleGps}
+              className={isTracking ? "bg-sky-500/10 border-sky-500/30 text-sky-700" : ""}
+            >
+              <i className="ri-navigation-line mr-1"></i>
+              GPS
+            </Button>
             <Button
               variant="outline"
               size="sm"

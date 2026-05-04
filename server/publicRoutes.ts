@@ -1,28 +1,24 @@
 import { Request, Response, NextFunction } from "express";
 
-// Middleware that allows public access but captures auth information
+type Sess = { userId?: string; role?: string; isAuthenticated?: boolean };
+
+// Middleware that allows public access but captures auth for "optional auth" routes (e.g. catch list, map)
 export const allowPublicAccess = (req: Request, res: Response, next: NextFunction) => {
-  console.log("Public access middleware - headers:", req.headers);
-  
-  // If there's an auth header from localStorage, use it (for edit permissions)
-  if (req.headers['x-auth-user-id']) {
-    req.headers['user-id'] = req.headers['x-auth-user-id'] as string;
-    console.log("Using user ID from headers:", req.headers['user-id']);
-  } else if (req.body && req.body.userId) {
-    // If the userId is in the request body, use that
-    req.headers['user-id'] = req.body.userId;
-    console.log("Using user ID from body:", req.body.userId);
-  } else {
-    // Default to a test user ID if available in request headers
-    const testUserId = req.headers['x-test-user-id'];
-    if (testUserId) {
-      req.headers['user-id'] = testUserId as string;
-      console.log("Using test user ID:", testUserId);
-    } else {
-      console.log("No user ID available");
+  const sess = req.session as Sess | undefined;
+
+  if (sess?.isAuthenticated && sess.userId) {
+    req.headers["user-id"] = sess.userId;
+    if (typeof sess.role === "string") {
+      req.headers["x-auth-user-role"] = sess.role;
     }
+  } else if (req.headers["x-auth-user-id"]) {
+    req.headers["user-id"] = req.headers["x-auth-user-id"] as string;
+  } else if (req.body && (req.body as { userId?: string }).userId) {
+    req.headers["user-id"] = (req.body as { userId: string }).userId;
+  } else if (req.headers["x-test-user-id"]) {
+    req.headers["user-id"] = req.headers["x-test-user-id"] as string;
   }
-  
-  // Always proceed with the request
+  // else: anonymous (expected for public map/feed) — no user-id
+
   next();
 };

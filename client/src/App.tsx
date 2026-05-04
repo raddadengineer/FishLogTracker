@@ -45,10 +45,10 @@ function Router() {
         <Route path="/forgot-password" component={ForgotPasswordPage} />
         <Route path="/register" component={RegisterPage} />
         <Route path="/map" component={MapPage} />
-        <Route path="/catches/:id" component={CatchDetailPage} />
         <Route path="/catches">
           <Redirect to="/map?tab=list" />
         </Route>
+        <Route path="/catches/:id" component={CatchDetailPage} />
         <Route path="/profile/:id?" component={ProfilePage} />
         <Route path="/edit-profile" component={EditProfilePage} />
         <Route path="/leaderboard" component={LeaderboardPage} />

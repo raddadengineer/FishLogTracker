@@ -24,6 +24,8 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
+  deleteUser(userId: string): Promise<void>;
+  countUsersWithRole(role: string): Promise<number>;
   getUserFollowers(userId: string): Promise<User[]>;
   getUserFollowing(userId: string): Promise<User[]>;
   followUser(followerId: string, followingId: string): Promise<void>;
@@ -37,6 +39,8 @@ export interface IStorage {
   createCatch(catchData: InsertCatch): Promise<Catch>;
   getCatch(id: number): Promise<Catch | undefined>;
   getUserCatches(userId: string, limit?: number): Promise<Catch[]>;
+  /** All catches for a user (plain rows, for backup export). */
+  getUserCatchesAll(userId: string): Promise<Catch[]>;
   getAllCatches(limit?: number, offset?: number): Promise<Catch[]>;
   updateCatch(id: number, catchData: Partial<InsertCatch>): Promise<Catch | undefined>;
   deleteCatch(id: number): Promise<void>;
@@ -101,6 +105,18 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return user;
+  }
+
+  async deleteUser(userId: string): Promise<void> {
+    await db.delete(users).where(eq(users.id, userId));
+  }
+
+  async countUsersWithRole(role: string): Promise<number> {
+    const [row] = await db
+      .select({ value: count() })
+      .from(users)
+      .where(eq(users.role, role));
+    return Number(row?.value ?? 0);
   }
 
   async getUserFollowers(userId: string): Promise<User[]> {
@@ -236,6 +252,14 @@ export class DatabaseStorage implements IStorage {
       ...result.catch,
       user: result.user
     }));
+  }
+
+  async getUserCatchesAll(userId: string): Promise<Catch[]> {
+    return await db
+      .select()
+      .from(catches)
+      .where(eq(catches.userId, userId))
+      .orderBy(desc(catches.catchDate));
   }
 
   async getAllCatches(limit = 20, offset = 0): Promise<any[]> {

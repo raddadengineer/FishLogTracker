@@ -87,6 +87,7 @@ export default function EditProfilePage() {
       // Send update request
       const response = await fetch(`/api/user/profile`, {
         method: "PATCH",
+        credentials: "include",
         headers: {
           'Content-Type': 'application/json'
         },

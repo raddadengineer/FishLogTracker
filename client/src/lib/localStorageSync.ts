@@ -1,4 +1,5 @@
 import { generateId, safeJsonParse } from "./utils";
+import { clientAuthHeaders } from "./queryClient";
 
 // Type definitions
 export interface OfflineCatch {
@@ -142,8 +143,10 @@ export async function syncOfflineCatches(): Promise<{
       try {
         const response = await fetch('/api/catches', {
           method: 'POST',
+          credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
+            ...clientAuthHeaders(),
           },
           body: JSON.stringify({
             species: offlineCatch.species,

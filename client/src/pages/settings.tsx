@@ -4,35 +4,26 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "wouter";
 import { useSettings } from "@/hooks/useSettings";
+import { DataBackupSection } from "@/components/backup/DataBackupSection";
+import { DeleteAccountSection } from "@/components/account/DeleteAccountSection";
 
 export default function SettingsPage() {
   const { user, isAuthenticated } = useAuth();
-  const { toast } = useToast();
   const { settings, updateSetting, saveSettings } = useSettings();
-  
-  // Save settings with toast notification
-  const handleSaveSettings = () => {
-    saveSettings();
-    
-    toast({
-      title: "Settings saved",
-      description: "Your preferences have been updated",
-    });
-  };
-  
+
   return (
     <div className="container mx-auto py-6 max-w-3xl">
       <h1 className="text-2xl font-semibold mb-6">Settings</h1>
       
       <Tabs defaultValue="general" className="w-full">
-        <TabsList className="mb-4">
+        <TabsList className="mb-4 flex-wrap h-auto gap-1">
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="account">Account</TabsTrigger>
           <TabsTrigger value="privacy">Privacy</TabsTrigger>
+          <TabsTrigger value="backup">Backup</TabsTrigger>
           <TabsTrigger value="about">About</TabsTrigger>
         </TabsList>
         
@@ -109,6 +100,8 @@ export default function SettingsPage() {
                   <Link href="/edit-profile">
                     <Button variant="outline" className="mt-2">Edit Profile</Button>
                   </Link>
+
+                  <DeleteAccountSection />
                 </>
               ) : (
                 <div className="text-center py-8">
@@ -131,10 +124,14 @@ export default function SettingsPage() {
               <CardDescription>Control your data and privacy</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <Label htmlFor="dataSync" className="font-medium">Data Synchronization</Label>
-                  <p className="text-sm text-gray-500">Sync your catches to the cloud</p>
+              <div className="flex justify-between items-center gap-4">
+                <div className="min-w-0 flex-1">
+                  <Label htmlFor="dataSync" className="font-medium">Cloud storage preference</Label>
+                  <p className="text-sm text-gray-500">
+                    Your catches are stored on this app&apos;s servers when you&apos;re signed in. Use the{" "}
+                    <strong className="text-foreground">Backup</strong> tab for JSON export, Google Drive, or import —
+                    not this switch (reserved for future options).
+                  </p>
                 </div>
                 <Switch 
                   id="dataSync" 
@@ -155,18 +152,33 @@ export default function SettingsPage() {
                 />
               </div>
               
-              <div className="pt-4">
-                <Button variant="destructive" size="sm">
-                  Delete Account
-                </Button>
-                <p className="text-xs text-gray-500 mt-1">
-                  This action is permanent and cannot be undone.
-                </p>
-              </div>
             </CardContent>
             <CardFooter>
               <Button onClick={saveSettings}>Save Changes</Button>
             </CardFooter>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="backup">
+          <Card>
+            <CardHeader>
+              <CardTitle>Backup and cloud copy</CardTitle>
+              <CardDescription>
+                Export your catches, save to Google Drive, or keep a copy in iCloud Drive via the Files app
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isAuthenticated ? (
+                <DataBackupSection />
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p className="mb-4">Sign in to export or import your personal backup.</p>
+                  <Link href="/login">
+                    <Button>Log In</Button>
+                  </Link>
+                </div>
+              )}
+            </CardContent>
           </Card>
         </TabsContent>
         

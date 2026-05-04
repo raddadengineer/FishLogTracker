@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -10,6 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { LoaderCircle } from "lucide-react";
 import { Link } from "wouter";
+import { GoogleSignInBlock } from "@/components/auth/GoogleSignInBlock";
 
 const registerSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
@@ -25,7 +25,6 @@ type RegisterValues = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
-  const [, setLocation] = useLocation();
   const { toast } = useToast();
 
   const form = useForm<RegisterValues>({
@@ -43,6 +42,7 @@ export default function RegisterPage() {
     try {
       const response = await fetch("/api/auth/register", {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
@@ -157,6 +157,9 @@ export default function RegisterPage() {
               </Button>
             </form>
           </Form>
+          <div className="mt-6">
+            <GoogleSignInBlock />
+          </div>
         </CardContent>
         <CardFooter className="flex justify-center">
           <div className="text-sm text-muted-foreground">

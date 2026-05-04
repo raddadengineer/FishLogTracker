@@ -200,7 +200,8 @@ export const insertUserSchema = createInsertSchema(users).omit({
 });
 
 export const upsertUserSchema = insertUserSchema.partial({
-  passwordHash: true
+  passwordHash: true,
+  googleId: true,
 });
 
 export const insertCatchSchema = createInsertSchema(catches).omit({

@@ -1,5 +1,15 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
+/** Headers used by the server when session cookies are missing (matches `apiRequest`). */
+export function clientAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {};
+  const userId = localStorage.getItem("currentUserId");
+  const role = localStorage.getItem("currentUserRole");
+  if (userId) headers["x-auth-user-id"] = userId;
+  if (role) headers["x-auth-user-role"] = role;
+  return headers;
+}
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -17,11 +27,7 @@ export async function apiRequest(
   let headers: Record<string, string> = {};
   let body: any = undefined;
   
-  // Add authentication from localStorage if available
-  const userId = localStorage.getItem('currentUserId');
-  if (userId) {
-    headers['x-auth-user-id'] = userId;
-  }
+  Object.assign(headers, clientAuthHeaders());
   
   if (data) {
     if (isFormData || data instanceof FormData) {

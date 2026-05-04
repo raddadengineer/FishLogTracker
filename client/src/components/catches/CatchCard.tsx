@@ -112,6 +112,7 @@ export default function CatchCard({ catchData }: CatchCardProps) {
     try {
       const response = await fetch(`/api/catches/${catchData.id}/verify`, {
         method: 'PATCH',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           'x-auth-user-id': (user as any)?.id || '',

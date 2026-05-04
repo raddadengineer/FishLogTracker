@@ -24,13 +24,29 @@ CREATE INDEX IF NOT EXISTS IDX_session_expire ON sessions (expire);
 echo "Running database migrations..."
 npm run db:push
 
-# Create initial admin user if it doesn't exist
+# Seed default admin (README: admin@example.com / password123).
+# IMPORTANT: use a quoted heredoc so shell does not expand $ in the bcrypt hash
+# (double-quoted psql -c "..." mangles $2, $10, etc. and breaks login).
 echo "Setting up initial admin user..."
-psql -h db -U postgres -d fishtracker -c "
+psql -h db -U postgres -d fishtracker <<'EOSQL'
 INSERT INTO users (id, username, email, password_hash, role, created_at, updated_at)
-VALUES ('admin-user-id', 'admin', 'admin@example.com', '$2b$10$vKcMGHLgMJU1Uu5E4CjTt.FT5EZXU/vXlVqcCyuw.qnlMzJ/2BkOS', 'admin', now(), now())
+VALUES (
+  'admin-user-id',
+  'admin',
+  'admin@example.com',
+  '$2b$10$BF2BNwa1yponHB61mc4xN.nX4Gl3JydC/3CQ9Z3LuSfKgPVnTbow2',
+  'admin',
+  now(),
+  now()
+)
 ON CONFLICT (id) DO NOTHING;
-"
+
+-- Fix legacy DBs where the hash was corrupted by shell expansion (not 60 chars).
+UPDATE users
+SET password_hash = '$2b$10$BF2BNwa1yponHB61mc4xN.nX4Gl3JydC/3CQ9Z3LuSfKgPVnTbow2'
+WHERE id = 'admin-user-id'
+  AND char_length(password_hash) <> 60;
+EOSQL
 
 # Start the application
 echo "Starting Fish Tracker application..."

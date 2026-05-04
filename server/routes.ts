@@ -1,8 +1,15 @@
 import express, { type Express, type Request, type Response } from "express";
+import bcrypt from "bcrypt";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { getWeatherData } from "./services/openWeatherService";
-import { insertCatchSchema, insertCommentSchema, insertLakeSchema, users as usersTable } from "@shared/schema";
+import {
+  insertCatchSchema,
+  insertCommentSchema,
+  insertLakeSchema,
+  users as usersTable,
+  type InsertCatch,
+} from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
 import path from "path";
@@ -14,9 +21,9 @@ import {
   register,
   logout, 
   getCurrentUser,
-  isAuthenticated,
-  isAdmin,
-  isModeratorOrAdmin
+  requireSessionAuth,
+  requireAdminSession,
+  requireModeratorOrAdminSession,
 } from "./auth";
 import { allowPublicAccess } from "./publicRoutes";
 import { directCatchRouter } from "./directCatchAPI";
@@ -102,23 +109,101 @@ const upload = multer({
   },
 });
 
+const backupImportBodySchema = z.object({
+  format: z.literal("fishlogtracker-backup"),
+  version: z.number().optional(),
+  mode: z.literal("merge").optional(),
+  catches: z.array(z.unknown()),
+});
+
+type PhotoEntry = NonNullable<InsertCatch["photoData"]>[number];
+
+function normalizePhotoData(raw: unknown): InsertCatch["photoData"] {
+  if (!Array.isArray(raw)) return undefined;
+  const out: PhotoEntry[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const p = item as Record<string, unknown>;
+    const id = typeof p.id === "string" ? p.id : String(p.id ?? "");
+    const filename = typeof p.filename === "string" ? p.filename : "";
+    const mimeType = typeof p.mimeType === "string" ? p.mimeType : "";
+    const data = typeof p.data === "string" ? p.data : "";
+    const size = typeof p.size === "number" ? p.size : parseInt(String(p.size ?? "0"), 10) || 0;
+    if (!filename || !mimeType || !data) continue;
+    out.push({ id, filename, mimeType, size, data });
+  }
+  return out.length ? out : undefined;
+}
+
+function normalizeBackupCatchRow(raw: unknown, userId: string): InsertCatch | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  if (typeof o.species !== "string" || !o.species.trim()) return null;
+  if (o.size == null || String(o.size).trim() === "") return null;
+
+  let lakeId: number | undefined;
+  if (o.lakeId != null && o.lakeId !== "") {
+    const n = typeof o.lakeId === "number" ? o.lakeId : parseInt(String(o.lakeId), 10);
+    if (!Number.isNaN(n)) lakeId = n;
+  }
+
+  let weatherData: InsertCatch["weatherData"];
+  if (o.weatherData != null) {
+    if (typeof o.weatherData === "object") weatherData = o.weatherData as InsertCatch["weatherData"];
+    else if (typeof o.weatherData === "string") {
+      try {
+        weatherData = JSON.parse(o.weatherData) as InsertCatch["weatherData"];
+      } catch {
+        weatherData = undefined;
+      }
+    }
+  }
+
+  const parsed = insertCatchSchema.safeParse({
+    userId,
+    species: String(o.species).trim(),
+    size: String(o.size),
+    weight: o.weight != null && String(o.weight) !== "" ? String(o.weight) : undefined,
+    lakeId,
+    lakeName: o.lakeName != null ? String(o.lakeName) : undefined,
+    latitude:
+      o.latitude != null && o.latitude !== "" ? Number(o.latitude) : undefined,
+    longitude:
+      o.longitude != null && o.longitude !== "" ? Number(o.longitude) : undefined,
+    temperature:
+      o.temperature != null && String(o.temperature) !== "" ? String(o.temperature) : undefined,
+    depth: o.depth != null && String(o.depth) !== "" ? String(o.depth) : undefined,
+    lure: o.lure != null ? String(o.lure) : undefined,
+    weatherData,
+    comments: o.comments != null ? String(o.comments) : undefined,
+    photoData: normalizePhotoData(o.photoData),
+    catchDate: o.catchDate ? new Date(String(o.catchDate)) : new Date(),
+  });
+  return parsed.success ? parsed.data : null;
+}
+
 // We're now using auth.ts middleware for authentication/authorization
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Serve uploaded files
-  app.use("/uploads", isAuthenticated, express.static(path.join(process.cwd(), "uploads")));
+  app.use("/uploads", requireSessionAuth, express.static(path.join(process.cwd(), "uploads")));
 
   // Auth routes
   app.post("/api/auth/login", login);
   app.post("/api/auth/register", register);
   app.post("/api/auth/logout", logout);
   app.get("/api/auth/user", getCurrentUser);
+
+  app.get("/api/auth/google/status", (_req, res) => {
+    // Drive picker uses VITE_GOOGLE_CLIENT_ID; full OAuth redirect is not wired unless explicitly enabled.
+    res.json({ enabled: process.env.GOOGLE_OAUTH_ENABLED === "true" });
+  });
   
   // Add profile update endpoint
-  app.patch('/api/user/profile', isAuthenticated, async (req, res) => {
+  app.patch('/api/user/profile', requireSessionAuth, async (req, res) => {
     try {
-      const userId = req.session?.userId;
-      
+      const userId = req.headers["user-id"] as string | undefined;
+
       if (!userId) {
         return res.status(401).json({ message: "Unauthorized" });
       }
@@ -147,6 +232,128 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to update profile" });
     }
   });
+
+  app.get("/api/user/backup/export", requireSessionAuth, async (req, res) => {
+    try {
+      const userId = req.headers["user-id"] as string | undefined;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      const userCatches = await storage.getUserCatchesAll(userId);
+      const { passwordHash: _pw, ...safeUser } = user;
+      res.json({
+        format: "fishlogtracker-backup",
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        user: safeUser,
+        catches: userCatches,
+      });
+    } catch (error) {
+      console.error("Error exporting backup:", error);
+      res.status(500).json({ message: "Failed to export backup" });
+    }
+  });
+
+  app.post("/api/user/backup/import", requireSessionAuth, async (req, res) => {
+    try {
+      const userId = req.headers["user-id"] as string | undefined;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const parsedBody = backupImportBodySchema.safeParse(req.body);
+      if (!parsedBody.success) {
+        return res.status(400).json({ message: "Invalid backup payload" });
+      }
+
+      let imported = 0;
+      let rowErrorCount = 0;
+      for (const row of parsedBody.data.catches) {
+        const insertRow = normalizeBackupCatchRow(row, userId);
+        if (!insertRow) {
+          rowErrorCount++;
+          continue;
+        }
+        try {
+          await storage.createCatch(insertRow);
+          imported++;
+        } catch {
+          rowErrorCount++;
+        }
+      }
+
+      res.json({ imported, rowErrorCount });
+    } catch (error) {
+      console.error("Error importing backup:", error);
+      res.status(500).json({ message: "Failed to import backup" });
+    }
+  });
+
+  app.post("/api/user/account/delete", requireSessionAuth, async (req, res) => {
+    try {
+      const userId = req.headers["user-id"] as string | undefined;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const body = req.body as { confirmEmail?: string; password?: string };
+      const rawConfirm = body.confirmEmail?.trim() ?? "";
+      const password = body.password;
+      if (!rawConfirm) {
+        return res.status(400).json({ message: "Confirmation is required." });
+      }
+      if (!password || typeof password !== "string") {
+        return res.status(400).json({ message: "Password is required." });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found." });
+      }
+
+      const typed = rawConfirm.toLowerCase();
+      const matchesEmail = !!user.email && typed === user.email.toLowerCase();
+      const matchesUsername = typed === user.username.toLowerCase();
+      if (!matchesEmail && !matchesUsername) {
+        return res.status(400).json({ message: "Does not match your email or username." });
+      }
+
+      const passwordOk = await bcrypt.compare(password, user.passwordHash);
+      if (!passwordOk) {
+        return res.status(401).json({ message: "Incorrect password." });
+      }
+
+      if (user.role === "admin") {
+        const adminCount = await storage.countUsersWithRole("admin");
+        if (adminCount <= 1) {
+          return res.status(400).json({ message: "Cannot delete the last administrator account." });
+        }
+      }
+
+      await storage.deleteUser(userId);
+
+      const sess = req.session;
+      if (!sess) {
+        return res.json({ ok: true });
+      }
+      sess.destroy((err: Error | null) => {
+        if (err) {
+          console.error("Session destroy after account delete:", err);
+          return res.status(500).json({
+            message: "Account deleted, but we could not clear your session. Sign out manually.",
+          });
+        }
+        res.json({ ok: true });
+      });
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      res.status(500).json({ message: "Failed to delete account" });
+    }
+  });
   
   // Direct catch API - no authentication required
   app.use("/api/direct-catch", directCatchRouter);
@@ -164,7 +371,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/leaderboard/direct", directLeaderboardRouter);
   
   // Add an endpoint to get all users (for admin page)
-  app.get('/api/admin/users', isAuthenticated, isAdmin, async (req, res) => {
+  app.get('/api/admin/users', requireAdminSession, async (req, res) => {
     try {
       const allUsers = await db.select().from(usersTable);
       res.json(allUsers);
@@ -178,7 +385,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/admin', adminRouter);
   
   // Legacy admin user route - can be removed once the new router is working
-  app.get('/api/admin/users-legacy', isAuthenticated, isAdmin, async (req, res) => {
+  app.get('/api/admin/users-legacy', requireAdminSession, async (req, res) => {
     try {
       const allUsers = await db.select().from(usersTable);
       res.json(allUsers);
@@ -188,35 +395,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Admin account creation route
-  app.post('/api/admin/setup', async (req, res) => {
-    try {
-      // First check if any admin exists
-      const adminUsers = await db.select().from(usersTable).where(eq(usersTable.role, "admin")).limit(1);
-      
-      if (adminUsers.length > 0) {
-        return res.status(403).json({ message: "Admin already exists" });
-      }
-      
-      // Get the current user from the session
-      const userId = (req.session as any).userId;
-      if (!userId) {
-        return res.status(401).json({ message: "Authentication required" });
-      }
-      
-      // Promote the user to admin
-      const adminUser = await storage.updateUserRole(userId, "admin");
-      
-      res.status(200).json({ 
-        message: "Admin account created successfully", 
-        user: adminUser 
-      });
-    } catch (error) {
-      console.error("Error creating admin account:", error);
-      res.status(500).json({ message: "Failed to create admin account" });
-    }
-  });
-
   // User routes - public access for user profiles
   app.get("/api/users/:id", allowPublicAccess, async (req, res) => {
     try {
@@ -295,14 +473,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Following routes
-  app.post("/api/users/:id/follow", allowPublicAccess, async (req, res) => {
+  app.post("/api/users/:id/follow", requireSessionAuth, async (req, res) => {
     try {
       const followingId = req.params.id;
-      const followerId = req.body.followerId || req.headers['user-id'] as string;
-      
-      if (!followerId) {
-        return res.status(400).json({ message: "Follower ID is required" });
-      }
+      const followerId = req.headers["user-id"] as string;
       
       if (followerId === followingId) {
         return res.status(400).json({ message: "You cannot follow yourself" });
@@ -316,14 +490,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/users/:id/follow", allowPublicAccess, async (req, res) => {
+  app.delete("/api/users/:id/follow", requireSessionAuth, async (req, res) => {
     try {
       const followingId = req.params.id;
-      const followerId = req.body.followerId || req.headers['user-id'] as string || req.query.followerId as string;
-      
-      if (!followerId) {
-        return res.status(400).json({ message: "Follower ID is required" });
-      }
+      const followerId = req.headers["user-id"] as string;
       
       await storage.unfollowUser(followerId, followingId);
       res.status(200).json({ message: "Successfully unfollowed user" });
@@ -355,14 +525,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/users/:id/is-following", allowPublicAccess, async (req, res) => {
+  app.get("/api/users/:id/is-following", requireSessionAuth, async (req, res) => {
     try {
       const followingId = req.params.id;
-      const followerId = req.query.followerId as string || req.headers['user-id'] as string;
-      
-      if (!followerId) {
-        return res.json({ isFollowing: false });
-      }
+      const followerId = req.headers["user-id"] as string;
       
       const isFollowing = await storage.isFollowing(followerId, followingId);
       res.json({ isFollowing });
@@ -372,11 +538,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Catch routes
-  app.post("/api/catches", allowPublicAccess, upload.array("photos", 5), async (req, res) => {
+  // Catch routes (creator identity comes only from the signed-in session)
+  app.post("/api/catches", requireSessionAuth, upload.array("photos", 5), async (req, res) => {
     try {
-      // Add user ID from header or body (FormData sends it in body)
-      req.body.userId = req.headers['user-id'] as string || req.body.userId;
+      req.body.userId = req.headers["user-id"] as string;
       
       // Process uploaded photos and convert to base64 for database storage
       const files = req.files as Express.Multer.File[];
@@ -480,7 +645,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/catches/:id", isAuthenticated, async (req, res) => {
+  app.get("/api/catches/:id", allowPublicAccess, async (req, res) => {
     try {
       const catchId = parseInt(req.params.id);
       const fishCatch = await storage.getCatch(catchId);
@@ -496,48 +661,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add PATCH route for catch updates
-  app.patch("/api/catches/:id", allowPublicAccess, upload.array("photos", 5), async (req, res) => {
-    try {
-      const catchId = parseInt(req.params.id);
-      const userId = req.body.userId || req.headers['user-id'] as string;
-      
-      // Get existing catch to check ownership
-      const existingCatch = await storage.getCatch(catchId);
-      if (!existingCatch) {
-        return res.status(404).json({ message: "Catch not found" });
-      }
-      
-      // Process uploaded photos
-      const files = req.files as Express.Multer.File[];
-      if (files && files.length > 0) {
-        req.body.photos = files.map(file => `/uploads/${file.filename}`);
-      }
-      
-      // Convert string values to numbers
-      if (req.body.size) req.body.size = parseFloat(req.body.size);
-      if (req.body.weight) req.body.weight = parseFloat(req.body.weight);
-      if (req.body.latitude) req.body.latitude = parseFloat(req.body.latitude);
-      if (req.body.longitude) req.body.longitude = parseFloat(req.body.longitude);
-      if (req.body.temperature) req.body.temperature = parseFloat(req.body.temperature);
-      if (req.body.depth) req.body.depth = parseFloat(req.body.depth);
-      if (req.body.lakeId) req.body.lakeId = parseInt(req.body.lakeId);
-      
-      // Update catch
-      const updatedCatch = await storage.updateCatch(catchId, req.body);
-      
-      if (!updatedCatch) {
-        return res.status(404).json({ message: "Catch not found" });
-      }
-      
-      res.json(updatedCatch);
-    } catch (error) {
-      console.error("Error updating catch:", error);
-      res.status(500).json({ message: "Failed to update catch" });
-    }
-  });
-
-  app.put("/api/catches/:id", isAuthenticated, upload.array("photos", 5), async (req, res) => {
+  app.put("/api/catches/:id", requireSessionAuth, upload.array("photos", 5), async (req, res) => {
     try {
       const catchId = parseInt(req.params.id);
       const userId = req.headers['user-id'] as string;
@@ -588,7 +712,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Add endpoint for users to verify their own catches
-  app.patch("/api/catches/:id/verify", isAuthenticated, async (req, res) => {
+  app.patch("/api/catches/:id/verify", requireSessionAuth, async (req, res) => {
     try {
       const catchId = parseInt(req.params.id);
       const userId = req.headers['user-id'] as string || (req.session as any)?.userId;
@@ -619,7 +743,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/catches/:id", isAuthenticated, async (req, res) => {
+  app.delete("/api/catches/:id", requireSessionAuth, async (req, res) => {
     try {
       const catchId = parseInt(req.params.id);
       const userId = req.headers['user-id'] as string;
@@ -660,7 +784,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Verification route for moderators and admins
-  app.post("/api/catches/:id/verify", isModeratorOrAdmin, async (req, res) => {
+  app.post("/api/catches/:id/verify", requireModeratorOrAdminSession, async (req, res) => {
     try {
       const catchId = parseInt(req.params.id);
       const verifiedCatch = await storage.verifyCatch(catchId);
@@ -677,7 +801,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Lake routes
-  app.post("/api/lakes", isAuthenticated, async (req, res) => {
+  app.post("/api/lakes", requireSessionAuth, async (req, res) => {
     try {
       // Validate using schema
       const result = insertLakeSchema.safeParse(req.body);
@@ -707,7 +831,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/lakes/:id", isAuthenticated, async (req, res) => {
+  app.get("/api/lakes/:id", allowPublicAccess, async (req, res) => {
     try {
       const lakeId = parseInt(req.params.id);
       const lake = await storage.getLake(lakeId);
@@ -723,7 +847,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/lakes/search", isAuthenticated, async (req, res) => {
+  app.get("/api/lakes/search", allowPublicAccess, async (req, res) => {
     try {
       const lat = parseFloat(req.query.lat as string);
       const lng = parseFloat(req.query.lng as string);
@@ -742,7 +866,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Like routes
-  app.post("/api/catches/:id/like", isAuthenticated, async (req, res) => {
+  app.post("/api/catches/:id/like", requireSessionAuth, async (req, res) => {
     try {
       const catchId = parseInt(req.params.id);
       const userId = req.headers['user-id'] as string;
@@ -757,7 +881,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/catches/:id/like", isAuthenticated, async (req, res) => {
+  app.delete("/api/catches/:id/like", requireSessionAuth, async (req, res) => {
     try {
       const catchId = parseInt(req.params.id);
       const userId = req.headers['user-id'] as string;
@@ -772,7 +896,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/catches/:id/like", isAuthenticated, async (req, res) => {
+  app.get("/api/catches/:id/like", requireSessionAuth, async (req, res) => {
     try {
       const catchId = parseInt(req.params.id);
       const userId = req.headers['user-id'] as string;
@@ -788,7 +912,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Comment routes
-  app.post("/api/catches/:id/comments", isAuthenticated, async (req, res) => {
+  app.post("/api/catches/:id/comments", requireSessionAuth, async (req, res) => {
     try {
       const catchId = parseInt(req.params.id);
       const userId = req.headers['user-id'] as string;
@@ -818,7 +942,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/catches/:id/comments", isAuthenticated, async (req, res) => {
+  app.get("/api/catches/:id/comments", requireSessionAuth, async (req, res) => {
     try {
       const catchId = parseInt(req.params.id);
       const comments = await storage.getCatchComments(catchId);
@@ -829,7 +953,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/comments/:id", isAuthenticated, async (req, res) => {
+  app.put("/api/comments/:id", requireSessionAuth, async (req, res) => {
     try {
       const commentId = parseInt(req.params.id);
       const userId = req.headers['user-id'] as string;
@@ -852,7 +976,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/comments/:id", isAuthenticated, async (req, res) => {
+  app.delete("/api/comments/:id", requireSessionAuth, async (req, res) => {
     try {
       const commentId = parseInt(req.params.id);
       const userId = req.headers['user-id'] as string;
@@ -886,7 +1010,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.get("/api/leaderboard/:criteria", isAuthenticated, async (req, res) => {
+  app.get("/api/leaderboard/:criteria", allowPublicAccess, async (req, res) => {
     try {
       const criteria = req.params.criteria as 'catches' | 'species' | 'size';
       const limit = parseInt(req.query.limit as string) || 10;
@@ -924,7 +1048,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.get("/api/lakes/:id/leaderboard/:criteria", isAuthenticated, async (req, res) => {
+  app.get("/api/lakes/:id/leaderboard/:criteria", allowPublicAccess, async (req, res) => {
     try {
       const lakeId = parseInt(req.params.id);
       const criteria = req.params.criteria as 'catches' | 'species' | 'size';
@@ -939,24 +1063,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching lake leaderboard:", error);
       res.status(500).json({ message: "Failed to fetch lake leaderboard" });
-    }
-  });
-
-  // Admin routes
-  app.put("/api/admin/users/:id/role", isAdmin, async (req, res) => {
-    try {
-      const userId = req.params.id;
-      const { role } = req.body;
-      
-      if (!role || !['user', 'moderator', 'admin'].includes(role)) {
-        return res.status(400).json({ message: "Invalid role" });
-      }
-      
-      const updatedUser = await storage.updateUserRole(userId, role);
-      res.json(updatedUser);
-    } catch (error) {
-      console.error("Error updating user role:", error);
-      res.status(500).json({ message: "Failed to update user role" });
     }
   });
 

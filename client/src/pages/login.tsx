@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { useLocation } from "wouter";
+import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -11,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { LoaderCircle } from "lucide-react";
 import { Link } from "wouter";
 import { queryClient } from "@/lib/queryClient";
+import { GoogleSignInBlock } from "@/components/auth/GoogleSignInBlock";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -19,10 +19,31 @@ const loginSchema = z.object({
 
 type LoginValues = z.infer<typeof loginSchema>;
 
+const googleErrorMessages: Record<string, string> = {
+  oauth_state: "Sign-in session expired. Please try again.",
+  oauth_token: "Google did not return a valid token.",
+  oauth_profile: "Could not read your Google profile.",
+  oauth_server: "Something went wrong on the server.",
+  email_unverified: "Google reports this email is not verified.",
+  email_google_conflict: "This email is already linked to a different Google account.",
+  oauth_disabled: "Google sign-in is not enabled for this deployment.",
+};
+
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
-  const [, setLocation] = useLocation();
   const { toast } = useToast();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const error = params.get("error");
+    if (!error) return;
+    toast({
+      title: "Google sign-in failed",
+      description: googleErrorMessages[error] ?? error,
+      variant: "destructive",
+    });
+    window.history.replaceState({}, "", "/login");
+  }, [toast]);
 
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
@@ -37,6 +58,7 @@ export default function LoginPage() {
     try {
       const response = await fetch("/api/auth/login", {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
@@ -136,6 +158,9 @@ export default function LoginPage() {
               </Button>
             </form>
           </Form>
+          <div className="mt-6">
+            <GoogleSignInBlock />
+          </div>
         </CardContent>
         <CardFooter className="flex justify-center">
           <div className="text-sm text-muted-foreground">

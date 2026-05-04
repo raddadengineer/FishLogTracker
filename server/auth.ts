@@ -44,6 +44,50 @@ export const isAuthenticated = (req: Request, res: Response, next: NextFunction)
   return res.status(401).json({ message: "Unauthorized" });
 };
 
+/** Requires a real cookie session (no `x-auth-user-id` spoof). Use for backup, profile, and account deletion. */
+export const requireSessionAuth = (req: Request, res: Response, next: NextFunction) => {
+  if (req.session && (req.session as any).isAuthenticated && (req.session as any).userId) {
+    req.headers["user-id"] = (req.session as any).userId;
+    const role = (req.session as any).role;
+    if (typeof role === "string") {
+      req.headers["x-auth-user-role"] = role;
+    }
+    return next();
+  }
+  return res.status(401).json({ message: "Sign in required. Use email/password sign-in for this action." });
+};
+
+/** Cookie session + `role === admin` only (no header spoof). */
+export const requireAdminSession = (req: Request, res: Response, next: NextFunction) => {
+  const sess = req.session as { isAuthenticated?: boolean; userId?: string; role?: string } | undefined;
+  if (!sess?.isAuthenticated || !sess.userId) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+  if (sess.role !== "admin") {
+    return res.status(403).json({ message: "Forbidden: administrators only" });
+  }
+  req.headers["user-id"] = sess.userId;
+  req.headers["x-auth-user-role"] = "admin";
+  return next();
+};
+
+/** Cookie session + moderator or admin role only. */
+export const requireModeratorOrAdminSession = (req: Request, res: Response, next: NextFunction) => {
+  const sess = req.session as { isAuthenticated?: boolean; userId?: string; role?: string } | undefined;
+  if (!sess?.isAuthenticated || !sess.userId) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+  const role = sess.role;
+  if (role !== "moderator" && role !== "admin") {
+    return res.status(403).json({ message: "Forbidden: moderator or admin required" });
+  }
+  req.headers["user-id"] = sess.userId;
+  if (typeof role === "string") {
+    req.headers["x-auth-user-role"] = role;
+  }
+  return next();
+};
+
 // Middleware to check if user is an admin
 export const isAdmin = async (req: Request, res: Response, next: NextFunction) => {
   try {

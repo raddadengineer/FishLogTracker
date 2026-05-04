@@ -96,7 +96,7 @@ export default function ProfilePage() {
   // Fetch following status if looking at someone else's profile
   const currentUserId = localStorage.getItem('currentUserId');
   const { data: followStatus, isLoading: isLoadingFollowStatus } = useQuery({
-    queryKey: [`/api/users/${userId}/is-following?followerId=${currentUserId}`],
+    queryKey: [`/api/users/${userId}/is-following`],
     enabled: !!currentUserId && !!userId && !isOwnProfile,
   });
 
@@ -168,7 +168,7 @@ export default function ProfilePage() {
     try {
       if (following) {
         // Unfollow
-        await apiRequest('DELETE', `/api/users/${userId}/follow?followerId=${currentUserId}`, null);
+        await apiRequest('DELETE', `/api/users/${userId}/follow`, null);
         setFollowing(false);
         toast({
           title: "Unfollowed",
@@ -176,7 +176,7 @@ export default function ProfilePage() {
         });
       } else {
         // Follow
-        await apiRequest('POST', `/api/users/${userId}/follow`, { followerId: currentUserId });
+        await apiRequest('POST', `/api/users/${userId}/follow`, {});
         setFollowing(true);
         toast({
           title: "Following",

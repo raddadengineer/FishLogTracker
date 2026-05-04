@@ -27,7 +27,12 @@ export default function AdminPage() {
   const [catchDetailsOpen, setCatchDetailsOpen] = useState(false);
   const [exportStatus, setExportStatus] = useState<string>('idle');
   const [importStatus, setImportStatus] = useState<string>('idle');
+  const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
+  const [pendingRestoreFile, setPendingRestoreFile] = useState<File | null>(null);
+  const [restorePhrase, setRestorePhrase] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const RESTORE_CONFIRM = 'RESTORE';
 
   // Fetch users for admin dashboard
   const { data: users = [], isLoading: isUsersLoading } = useQuery({
@@ -36,6 +41,7 @@ export default function AdminPage() {
       try {
         // Include user credentials and role in request headers
         const response = await fetch('/api/admin/users', {
+          credentials: 'include',
           headers: {
             'x-auth-user-id': (user as any)?.id || '',
             'x-auth-user-role': (user as any)?.role || ''
@@ -59,6 +65,7 @@ export default function AdminPage() {
     queryFn: async () => {
       try {
         const response = await fetch('/api/catches?limit=100', {
+          credentials: 'include',
           headers: {
             'x-auth-user-id': (user as any)?.id || '',
             'x-auth-user-role': (user as any)?.role || ''
@@ -87,6 +94,7 @@ export default function AdminPage() {
     mutationFn: async ({ userId, role }: { userId: string, role: string }) => {
       const response = await fetch(`/api/admin/users/${userId}/role`, {
         method: 'PATCH',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -121,6 +129,7 @@ export default function AdminPage() {
     mutationFn: async (catchId: number) => {
       const response = await fetch(`/api/admin/catches/${catchId}/verify`, {
         method: 'PATCH',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           'x-auth-user-id': (user as any)?.id || '',
@@ -157,6 +166,7 @@ export default function AdminPage() {
     mutationFn: async (catchId: number) => {
       const response = await fetch(`/api/catches/${catchId}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
       
       if (!response.ok) {
@@ -202,6 +212,7 @@ export default function AdminPage() {
     mutationFn: async () => {
       const response = await fetch('/api/admin/export', {
         method: 'GET',
+        credentials: 'include',
         headers: {
           'x-auth-user-id': (user as any)?.id || '',
           'x-auth-user-role': (user as any)?.role || ''
@@ -248,6 +259,7 @@ export default function AdminPage() {
       
       const response = await fetch('/api/admin/import', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'x-auth-user-id': (user as any)?.id || '',
           'x-auth-user-role': (user as any)?.role || ''
@@ -264,10 +276,16 @@ export default function AdminPage() {
     },
     onSuccess: (data) => {
       setImportStatus('success');
+      setRestoreDialogOpen(false);
+      setPendingRestoreFile(null);
+      setRestorePhrase('');
       queryClient.invalidateQueries();
       toast({
-        title: 'Success',
-        description: `Database imported successfully. Restored ${data.recordsImported} records.`,
+        title: 'Database restored',
+        description:
+          typeof data.recordsImported === 'number'
+            ? `${data.recordsImported} rows imported. ${data.message ?? 'Sign in again with a user from the backup.'}`
+            : data.message ?? 'Sign in again with a user from the backup.',
       });
     },
     onError: (error) => {
@@ -279,6 +297,12 @@ export default function AdminPage() {
       });
     },
   });
+
+  const confirmFullRestore = () => {
+    if (!pendingRestoreFile || restorePhrase !== RESTORE_CONFIRM) return;
+    setImportStatus('loading');
+    importDatabaseMutation.mutate(pendingRestoreFile);
+  };
 
   // Handle database export
   const handleExportDatabase = () => {
@@ -293,7 +317,7 @@ export default function AdminPage() {
     }
   };
 
-  // Handle file selection for import
+  // Handle file selection for import — opens confirmation dialog (full DB replace)
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -305,12 +329,12 @@ export default function AdminPage() {
         });
         return;
       }
-      
-      setImportStatus('loading');
-      importDatabaseMutation.mutate(file);
+
+      setPendingRestoreFile(file);
+      setRestorePhrase('');
+      setRestoreDialogOpen(true);
     }
-    
-    // Reset the input
+
     if (event.target) {
       event.target.value = '';
     }
@@ -322,6 +346,7 @@ export default function AdminPage() {
     try {
       const response = await fetch('/api/admin/setup', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -696,7 +721,7 @@ export default function AdminPage() {
                     Export Database
                   </CardTitle>
                   <CardDescription>
-                    Download a complete backup of all application data including users, catches, lakes, and comments.
+                    Download a JSON backup of all tables: users (including password hashes), lakes, catches (including photos), likes, comments, and follows.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -752,14 +777,17 @@ export default function AdminPage() {
                     Import Database
                   </CardTitle>
                   <CardDescription>
-                    Restore data from a previously exported backup file. This will replace existing data.
+                    Replace the entire database from an admin export. Restores accounts, catches, social data, and resets all login sessions.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 p-2 rounded">
                       <AlertTriangle className="h-4 w-4" />
-                      <span>Warning: This will overwrite existing data</span>
+                      <span>
+                        Destructive: deletes all current users, catches, and sessions, then loads the backup. You must
+                        sign in again afterward.
+                      </span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <FileText className="h-4 w-4" />
@@ -823,23 +851,75 @@ export default function AdminPage() {
                 <div className="space-y-3 text-sm">
                   <div className="flex items-start gap-2">
                     <span className="font-semibold">•</span>
-                    <span>Export data regularly to prevent loss during app rebuilds or updates</span>
+                    <span>Exports include password hashes; store backups securely and never commit them to git.</span>
                   </div>
                   <div className="flex items-start gap-2">
                     <span className="font-semibold">•</span>
-                    <span>Backup files contain all user data, catches, and system information</span>
+                    <span>Version 1.0 and 1.1 JSON backups from this admin export can be restored here.</span>
                   </div>
                   <div className="flex items-start gap-2">
                     <span className="font-semibold">•</span>
-                    <span>Import will completely replace existing data - use with caution</span>
+                    <span>Restore replaces every row in app tables and clears sessions so everyone must log in again.</span>
                   </div>
                   <div className="flex items-start gap-2">
                     <span className="font-semibold">•</span>
-                    <span>Files are downloaded with timestamp: fish-tracker-backup-YYYY-MM-DD.json</span>
+                    <span>Download filename pattern: fish-tracker-backup-YYYY-MM-DD.json</span>
                   </div>
                 </div>
               </CardContent>
             </Card>
+
+            <Dialog open={restoreDialogOpen} onOpenChange={(open) => {
+              setRestoreDialogOpen(open);
+              if (!open) {
+                setPendingRestoreFile(null);
+                setRestorePhrase('');
+              }
+            }}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Restore full database?</DialogTitle>
+                  <DialogDescription>
+                    This replaces all users, catches, lakes, likes, comments, and follows. Current admin and user
+                    accounts will be removed unless they exist in the backup file. All sessions are cleared.
+                  </DialogDescription>
+                </DialogHeader>
+                {pendingRestoreFile && (
+                  <p className="text-sm text-muted-foreground">
+                    File: <span className="font-medium text-foreground">{pendingRestoreFile.name}</span>
+                  </p>
+                )}
+                <div className="space-y-2">
+                  <Label htmlFor="restore-confirm">
+                    Type <span className="font-mono">{RESTORE_CONFIRM}</span> to confirm
+                  </Label>
+                  <Input
+                    id="restore-confirm"
+                    value={restorePhrase}
+                    onChange={(e) => setRestorePhrase(e.target.value)}
+                    placeholder={RESTORE_CONFIRM}
+                    autoComplete="off"
+                  />
+                </div>
+                <DialogFooter className="gap-2 sm:gap-0">
+                  <Button type="button" variant="outline" onClick={() => setRestoreDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    disabled={
+                      restorePhrase !== RESTORE_CONFIRM ||
+                      !pendingRestoreFile ||
+                      importDatabaseMutation.isPending
+                    }
+                    onClick={confirmFullRestore}
+                  >
+                    {importDatabaseMutation.isPending ? 'Restoring…' : 'Restore database'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
         </Tabs>
       </div>

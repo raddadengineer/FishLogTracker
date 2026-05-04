@@ -275,7 +275,16 @@ export default function CatchForm({ catchToEdit, onSuccess }: CatchFormProps) {
         const formData = new FormData();
         
         // Add user ID
-        const userId = localStorage.getItem('currentUserId') || '32a4819a-ee2b-4e91-aa42-d313eb2214ba';
+        const userId = localStorage.getItem('currentUserId') ?? '';
+        if (!userId) {
+          toast({
+            title: "Sign in required",
+            description: "Log in to save catches to your account.",
+            variant: "destructive",
+          });
+          setIsSaving(false);
+          return;
+        }
         formData.append('userId', userId);
         
         // Append all form fields with proper validation
@@ -307,17 +316,16 @@ export default function CatchForm({ catchToEdit, onSuccess }: CatchFormProps) {
         let response;
         
         if (catchToEdit) {
-          // For edit, add the catch ID
-          formData.append('id', catchToEdit.id.toString());
-          response = await fetch('/api/catches', {
-            method: 'PATCH',
-            body: formData
+          response = await fetch(`/api/catches/${catchToEdit.id}`, {
+            method: 'PUT',
+            credentials: 'include',
+            body: formData,
           });
         } else {
-          // Create new catch using multipart form data
           response = await fetch('/api/catches', {
             method: 'POST',
-            body: formData
+            credentials: 'include',
+            body: formData,
           });
         }
         

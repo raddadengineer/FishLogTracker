@@ -132,6 +132,7 @@ async function syncCatches() {
         // Send to server
         const response = await fetch('/api/catches', {
           method: 'POST',
+          credentials: 'include',
           body,
           headers: !catchData.photosBlob ? { 'Content-Type': 'application/json' } : undefined,
         });

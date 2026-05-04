@@ -18,6 +18,7 @@ import Layout from "@/components/layout/Layout";
 import { useEffect } from "react";
 import { initSyncModule } from "@/lib/localStorageSync";
 import { SettingsProvider } from "@/hooks/useSettings";
+import { AuthLocalStorageSync } from "@/components/auth/AuthLocalStorageSync";
 
 // Register service worker
 function registerServiceWorker() {
@@ -67,6 +68,7 @@ function App() {
       <TooltipProvider>
         <SettingsProvider>
           <Toaster />
+          <AuthLocalStorageSync />
           <Router />
         </SettingsProvider>
       </TooltipProvider>

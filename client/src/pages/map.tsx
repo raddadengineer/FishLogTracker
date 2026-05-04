@@ -30,6 +30,13 @@ export default function MapPage() {
   const initialLat = parseFloat(queryParams.get("lat") || "0") || undefined;
   const initialLng = parseFloat(queryParams.get("lng") || "0") || undefined;
 
+  useEffect(() => {
+    const tab = new URLSearchParams(window.location.search).get("tab");
+    if (tab === "list") {
+      setActiveTab("list");
+    }
+  }, []);
+
   // Fetch all catches
   const { data: catches = [], isLoading: isLoadingCatches } = useQuery({
     queryKey: ['/api/catches'],

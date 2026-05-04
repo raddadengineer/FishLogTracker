@@ -24,6 +24,12 @@ CREATE INDEX IF NOT EXISTS IDX_session_expire ON sessions (expire);
 echo "Running database migrations..."
 npm run db:push
 
+# Legacy installs: drizzle push sometimes skips new columns on existing tables — add any missing ones
+if [ -f /app/scripts/ensure-schema-sync.sql ]; then
+  echo "Applying legacy column patches (IF NOT EXISTS)..."
+  psql -h db -U postgres -d fishtracker -v ON_ERROR_STOP=1 -f /app/scripts/ensure-schema-sync.sql
+fi
+
 # Seed default admin (README: admin@example.com / password123).
 # IMPORTANT: use a quoted heredoc so shell does not expand $ in the bcrypt hash
 # (double-quoted psql -c "..." mangles $2, $10, etc. and breaks login).

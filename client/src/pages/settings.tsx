@@ -70,6 +70,31 @@ export default function SettingsPage() {
                   onCheckedChange={(checked) => updateSetting('enableNotifications', checked)} 
                 />
               </div>
+
+              <div className="flex justify-between items-center">
+                <div>
+                  <Label className="font-medium">Embedded map provider</Label>
+                  <p className="text-sm text-gray-500">Choose which map shows inside catch details</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={settings.mapEmbedProvider === "openstreetmap" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => updateSetting("mapEmbedProvider", "openstreetmap")}
+                  >
+                    OpenStreetMap
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={settings.mapEmbedProvider === "google" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => updateSetting("mapEmbedProvider", "google")}
+                  >
+                    Google
+                  </Button>
+                </div>
+              </div>
             </CardContent>
             <CardFooter>
               <Button onClick={saveSettings}>Save Changes</Button>
@@ -89,12 +114,12 @@ export default function SettingsPage() {
                 <>
                   <div>
                     <Label htmlFor="username" className="font-medium">Username</Label>
-                    <Input id="username" value={user?.username || ""} readOnly className="mt-1" />
+                    <Input id="username" value={(user as any)?.username || ""} readOnly className="mt-1" />
                   </div>
                   
                   <div>
                     <Label htmlFor="email" className="font-medium">Email</Label>
-                    <Input id="email" value={user?.email || ""} readOnly className="mt-1" />
+                    <Input id="email" value={(user as any)?.email || ""} readOnly className="mt-1" />
                   </div>
                   
                   <Link href="/edit-profile">

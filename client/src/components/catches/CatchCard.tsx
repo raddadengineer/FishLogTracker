@@ -43,9 +43,11 @@ interface CatchCardProps {
     isLiked?: boolean;
     depth?: number;
   };
+  embeddedMap?: React.ReactNode;
+  embeddedMapActions?: React.ReactNode;
 }
 
-export default function CatchCard({ catchData }: CatchCardProps) {
+export default function CatchCard({ catchData, embeddedMap, embeddedMapActions }: CatchCardProps) {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const [isLiked, setIsLiked] = useState(catchData.isLiked || false);
@@ -257,6 +259,21 @@ export default function CatchCard({ catchData }: CatchCardProps) {
               </a>
             </div>
           )}
+
+        {embeddedMap ? (
+          <div className="mb-3 overflow-hidden rounded-lg border border-gray-100 bg-white">
+            <div className="p-2 flex items-center justify-between gap-2">
+              <div className="text-xs font-medium text-gray-700 inline-flex items-center gap-1.5">
+                <MapPin className="h-3.5 w-3.5 text-primary" />
+                Map
+              </div>
+              {embeddedMapActions ? (
+                <div className="flex items-center gap-2">{embeddedMapActions}</div>
+              ) : null}
+            </div>
+            <div className="border-t border-gray-100">{embeddedMap}</div>
+          </div>
+        ) : null}
 
         <div className="flex justify-between items-center">
           <div className="flex space-x-4">

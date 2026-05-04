@@ -7,12 +7,13 @@ export interface Settings {
   enableNotifications: boolean;
   dataSync: boolean;
   showLocation: boolean;
+  mapEmbedProvider: "openstreetmap" | "google";
 }
 
 // Define context interface with settings and update functions
 interface SettingsContextType {
   settings: Settings;
-  updateSetting: (key: keyof Settings, value: boolean) => void;
+  updateSetting: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
   saveSettings: () => void;
 }
 
@@ -22,7 +23,8 @@ const defaultSettings: Settings = {
   useMetric: false,
   enableNotifications: true,
   dataSync: true,
-  showLocation: true
+  showLocation: true,
+  mapEmbedProvider: "openstreetmap",
 };
 
 // Create context with a default value
@@ -49,7 +51,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           useMetric: parsedSettings.useMetric ?? defaultSettings.useMetric,
           enableNotifications: parsedSettings.enableNotifications ?? defaultSettings.enableNotifications,
           dataSync: parsedSettings.dataSync ?? defaultSettings.dataSync,
-          showLocation: parsedSettings.showLocation ?? defaultSettings.showLocation
+          showLocation: parsedSettings.showLocation ?? defaultSettings.showLocation,
+          mapEmbedProvider: parsedSettings.mapEmbedProvider ?? defaultSettings.mapEmbedProvider,
         });
       } catch (e) {
         console.error("Failed to parse settings:", e);
@@ -70,7 +73,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   }, [settings.darkMode, initialized]);
 
   // Update individual setting
-  const updateSetting = (key: keyof Settings, value: boolean) => {
+  const updateSetting = <K extends keyof Settings>(key: K, value: Settings[K]) => {
     setSettings(prev => ({
       ...prev,
       [key]: value

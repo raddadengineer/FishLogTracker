@@ -271,7 +271,10 @@ export default function Home() {
               <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center mb-2">
                 <MapPin className="h-5 w-5 text-secondary" />
               </div>
-              <span className="text-sm font-medium">Explore Map</span>
+              <span className="text-sm font-medium inline-flex items-center gap-1.5">
+                <MapPin className="h-4 w-4" />
+                Explore Map
+              </span>
             </Button>
         </div>
       </section>
@@ -402,7 +405,10 @@ export default function Home() {
         <div className="flex justify-between items-center mb-3">
           <h2 className="text-lg font-semibold">Popular Spots</h2>
           <Link href="/map">
-            <a className="text-primary text-sm font-medium">View Map</a>
+            <a className="text-primary text-sm font-medium inline-flex items-center gap-1">
+              <MapPin className="h-4 w-4" />
+              View Map
+            </a>
           </Link>
         </div>
         

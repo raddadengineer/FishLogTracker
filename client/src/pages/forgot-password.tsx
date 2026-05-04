@@ -82,7 +82,7 @@ export default function ForgotPasswordPage() {
       form.reset();
     } catch (e) {
       toast({
-        title: "Could not reset password",
+        title: "Reset failed",
         description: e instanceof Error ? e.message : "Something went wrong",
         variant: "destructive",
       });

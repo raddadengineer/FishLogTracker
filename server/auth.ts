@@ -9,7 +9,7 @@ import {
 import { storage } from "./storage";
 import bcrypt from "bcrypt";
 import { v4 as uuidv4 } from "uuid";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, isNotNull, sql } from "drizzle-orm";
 
 /** Without SMTP, reset is “know the email → set a new password”. Enable only for trusted / private deployments. */
 export function isEmailOnlyPasswordResetEnabled(): boolean {
@@ -208,7 +208,7 @@ export const login = async (req: Request, res: Response) => {
     const [user] = await db
       .select()
       .from(users)
-      .where(sql`LOWER(${users.email}) = ${normalizedEmail}`);
+      .where(and(isNotNull(users.email), eq(sql`lower(${users.email})`, normalizedEmail)));
     
     if (!user) {
       return res.status(401).json({ message: "Invalid email or password" });
@@ -244,7 +244,7 @@ export const register = async (req: Request, res: Response) => {
     const [existingEmail] = await db
       .select()
       .from(users)
-      .where(sql`LOWER(${users.email}) = ${normalizedEmail}`);
+      .where(and(isNotNull(users.email), eq(sql`lower(${users.email})`, normalizedEmail)));
     if (existingEmail) {
       return res.status(400).json({ message: "Email already in use" });
     }
@@ -352,7 +352,7 @@ export const resetPasswordByEmail = async (req: Request, res: Response) => {
     const [user] = await db
       .select()
       .from(users)
-      .where(sql`LOWER(${users.email}) = ${normalized}`);
+      .where(and(isNotNull(users.email), eq(sql`lower(${users.email})`, normalized)));
 
     if (!user?.email) {
       return res.status(200).json(generic);
@@ -371,6 +371,10 @@ export const resetPasswordByEmail = async (req: Request, res: Response) => {
     return res.status(200).json(generic);
   } catch (error) {
     console.error("resetPasswordByEmail:", error);
-    return res.status(500).json({ message: "Could not reset password" });
+    const hint =
+      process.env.NODE_ENV === "development" && error instanceof Error
+        ? ` (${error.message})`
+        : "";
+    return res.status(500).json({ message: `Could not reset password${hint}` });
   }
 };

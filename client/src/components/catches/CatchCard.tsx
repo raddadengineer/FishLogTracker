@@ -5,7 +5,7 @@ import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Heart, MessageSquare, Check, MapPin, Ruler, Scale, Thermometer, Cloud, Edit } from "lucide-react";
-import { timeAgo, formatSize, formatWeight, formatTemperature } from "@/lib/utils";
+import { timeAgo, formatSize, formatWeight, formatTemperature, formatCoordinates, formatDepth } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
@@ -41,6 +41,7 @@ interface CatchCardProps {
     likesCount?: number;
     commentsCount?: number;
     isLiked?: boolean;
+    depth?: number;
   };
 }
 
@@ -228,7 +229,35 @@ export default function CatchCard({ catchData }: CatchCardProps) {
         {catchData.comments && (
           <p className="text-sm text-gray-600 mb-3">{catchData.comments}</p>
         )}
-        
+
+        {catchData.latitude != null &&
+          catchData.longitude != null &&
+          Number.isFinite(Number(catchData.latitude)) &&
+          Number.isFinite(Number(catchData.longitude)) && (
+            <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-600">
+              <span className="inline-flex items-center gap-1.5">
+                <MapPin className="h-3.5 w-3.5 shrink-0 text-primary" />
+                <span>
+                  {formatCoordinates(Number(catchData.latitude), Number(catchData.longitude))}
+                  {catchData.depth != null && (
+                    <span className="text-gray-500">
+                      {" "}
+                      · {formatDepth(Number(catchData.depth))}
+                    </span>
+                  )}
+                </span>
+              </span>
+              <a
+                href={`https://www.google.com/maps?q=${Number(catchData.latitude)},${Number(catchData.longitude)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs font-medium text-primary hover:underline"
+              >
+                Open in Maps
+              </a>
+            </div>
+          )}
+
         <div className="flex justify-between items-center">
           <div className="flex space-x-4">
             <Button 

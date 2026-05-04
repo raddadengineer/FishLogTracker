@@ -8,8 +8,9 @@ import { getFishSpeciesById } from "@/lib/fishSpecies";
 import { Loader2 } from "lucide-react";
 
 // Dynamically import Leaflet components to avoid SSR issues
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
+import { heatLayer } from "@linkurious/leaflet-heat";
 
 // Define marker types
 interface CatchMarker {
@@ -163,9 +164,11 @@ export default function LeafletMap({
       }
     });
     
-    // Update heatmap if enabled
     if (showHeatmap) {
       updateHeatmap();
+    } else if (heatLayerRef.current && mapRef.current) {
+      mapRef.current.removeLayer(heatLayerRef.current);
+      heatLayerRef.current = null;
     }
   }, [catches, showHeatmap]);
 
@@ -236,40 +239,26 @@ export default function LeafletMap({
     setShowHeatmap(!showHeatmap);
   };
 
-  // Update heatmap layer
+  // Update heatmap layer (uses @linkurious/leaflet-heat; bundled, not window.L)
   const updateHeatmap = () => {
     if (!mapRef.current) return;
-    
-    // Try to use the Leaflet.heat plugin if available
-    if (window.L.heatLayer && catches.length > 0) {
-      // Remove existing heatmap if it exists
-      if (heatLayerRef.current) {
-        mapRef.current.removeLayer(heatLayerRef.current);
-      }
-      
-      // Create points for heatmap
-      const points = catches
-        .filter(c => c.latitude && c.longitude)
-        .map(c => [c.latitude, c.longitude, 0.5]); // lat, lng, intensity
-      
-      if (points.length > 0) {
-        // Create and add heatmap layer
-        heatLayerRef.current = window.L.heatLayer(points, {
-          radius: 25,
-          blur: 15,
-          maxZoom: 17
-        }).addTo(mapRef.current);
-      }
-    } else {
-      // Heatmap plugin not available
-      if (!window.L.heatLayer) {
-        toast({
-          title: "Heatmap Unavailable",
-          description: "Heatmap functionality requires the Leaflet.heat plugin.",
-          variant: "destructive",
-        });
-      }
+
+    if (heatLayerRef.current) {
+      mapRef.current.removeLayer(heatLayerRef.current);
+      heatLayerRef.current = null;
     }
+
+    const points: [number, number, number][] = catches
+      .filter((c) => c.latitude && c.longitude)
+      .map((c) => [c.latitude, c.longitude, 0.5]);
+
+    if (points.length === 0) return;
+
+    heatLayerRef.current = heatLayer(points, {
+      radius: 25,
+      blur: 15,
+      maxZoom: 17,
+    }).addTo(mapRef.current);
   };
 
   return (
@@ -316,13 +305,4 @@ export default function LeafletMap({
       )}
     </Card>
   );
-}
-
-// Add missing type definition for Leaflet heatmap plugin
-declare global {
-  interface Window {
-    L: typeof L & {
-      heatLayer?: (latlngs: any[], options?: any) => any;
-    }
-  }
 }

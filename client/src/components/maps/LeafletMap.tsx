@@ -41,6 +41,7 @@ interface LeafletMapProps {
   showControls?: boolean;
   withCard?: boolean;
   preferCatchCenter?: boolean;
+  initialCenter?: { latitude: number; longitude: number; zoom?: number };
   onMarkerClick?: (markerId: number, type: 'catch' | 'lake') => void;
 }
 
@@ -51,6 +52,7 @@ export default function LeafletMap({
   showControls = true,
   withCard = true,
   preferCatchCenter = false,
+  initialCenter,
   onMarkerClick 
 }: LeafletMapProps) {
   const mapRef = useRef<L.Map | null>(null);
@@ -95,6 +97,12 @@ export default function LeafletMap({
       lakeMarkersRef.current = L.layerGroup().addTo(mapRef.current);
       userLayerRef.current = L.layerGroup().addTo(mapRef.current);
       
+      // Explicit center (e.g. My Spots deep link)
+      if (initialCenter && Number.isFinite(initialCenter.latitude) && Number.isFinite(initialCenter.longitude)) {
+        mapRef.current.setView([initialCenter.latitude, initialCenter.longitude], initialCenter.zoom ?? 14);
+        return;
+      }
+
       // Prefer centering on provided catch coordinates (e.g. catch detail embed)
       const firstCatch = catches.find((c) => c.latitude && c.longitude);
       if (preferCatchCenter && firstCatch) {
@@ -126,6 +134,14 @@ export default function LeafletMap({
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!initialCenter || !mapRef.current) return;
+    mapRef.current.setView(
+      [initialCenter.latitude, initialCenter.longitude],
+      initialCenter.zoom ?? Math.max(mapRef.current.getZoom(), 14),
+    );
+  }, [initialCenter?.latitude, initialCenter?.longitude, initialCenter?.zoom]);
 
   // If we prefer catch centering, keep map focused on the catch when data loads.
   useEffect(() => {

@@ -137,6 +137,10 @@ export default function Header() {
                         </span>
                       ) : null}
                     </Link>
+                    <Link href="/my-spots" className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-md">
+                      <i className="ri-map-pin-2-line"></i>
+                      My Spots
+                    </Link>
                     <Link href="/settings" className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-md">
                         <i className="ri-settings-line"></i>
                         Settings

@@ -15,12 +15,16 @@ import CatchForm from "@/components/catches/CatchForm";
 import { Search, Fish, Map, Filter, Plus } from "lucide-react";
 import { formatDate, formatSize, formatWeight } from "@/lib/utils";
 import { getFishSpeciesById } from "@/lib/fishSpecies";
+import { useToast } from "@/hooks/use-toast";
+import { isSpotSaved, removeSpot, saveSpot } from "@/lib/mySpots";
 
 export default function MapPage() {
   const [_, navigate] = useWouterLocation();
   const { location, getLocation } = useLocation();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<string>("map");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [mapCenter, setMapCenter] = useState<{ latitude: number; longitude: number; zoom?: number } | null>(null);
   const [filters, setFilters] = useState<{
     species: string;
     lake: string;
@@ -49,6 +53,13 @@ export default function MapPage() {
       setActiveTab("list");
     }
   }, []);
+
+  useEffect(() => {
+    if (initialLat != null && initialLng != null) {
+      setMapCenter({ latitude: initialLat, longitude: initialLng, zoom: 14 });
+      setActiveTab("map");
+    }
+  }, [initialLat, initialLng]);
 
   // Fetch all catches
   const { data: catches = [], isLoading: isLoadingCatches } = useQuery({
@@ -203,6 +214,7 @@ export default function MapPage() {
             lakes={lakes}
             height="60vh"
             onMarkerClick={handleMarkerClick}
+            initialCenter={mapCenter ?? undefined}
           />
         </TabsContent>
 
@@ -316,17 +328,36 @@ export default function MapPage() {
                         variant="outline" 
                         onClick={() => {
                           setActiveTab("map");
-                          // Center map on this lake
+                          setMapCenter({
+                            latitude: selectedLakeData.latitude,
+                            longitude: selectedLakeData.longitude,
+                            zoom: 14,
+                          });
                         }}
                       >
                         <Map className="h-4 w-4 mr-1" />
                         Show on Map
                       </Button>
                       
-                      <Button 
-                        onClick={() => navigate(`/lakes/${selectedLakeData.id}`)}
+                      <Button
+                        variant={isSpotSaved(`lake:${selectedLakeData.id}`) ? "outline" : "default"}
+                        onClick={() => {
+                          const key = `lake:${selectedLakeData.id}`;
+                          if (isSpotSaved(key)) {
+                            removeSpot(key);
+                            toast({ title: "Removed", description: "Removed from My Spots." });
+                          } else {
+                            saveSpot({
+                              id: key,
+                              name: selectedLakeData.name,
+                              latitude: selectedLakeData.latitude,
+                              longitude: selectedLakeData.longitude,
+                            });
+                            toast({ title: "Saved", description: "Added to My Spots." });
+                          }
+                        }}
                       >
-                        View Details
+                        {isSpotSaved(`lake:${selectedLakeData.id}`) ? "Unsave" : "Save spot"}
                       </Button>
                     </div>
                   </div>

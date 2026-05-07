@@ -17,6 +17,7 @@ import TestCatchPage from "@/pages/test-catch";
 import EditProfilePage from "@/pages/edit-profile";
 import SettingsPage from "@/pages/settings";
 import OfflineCatchesPage from "@/pages/offline-catches";
+import MySpotsPage from "@/pages/my-spots";
 import Layout from "@/components/layout/Layout";
 import { useEffect } from "react";
 import { initSyncModule } from "@/lib/localStorageSync";
@@ -56,6 +57,7 @@ function Router() {
         <Route path="/admin" component={AdminPage} />
         <Route path="/test-catch" component={TestCatchPage} />
         <Route path="/offline-catches" component={OfflineCatchesPage} />
+        <Route path="/my-spots" component={MySpotsPage} />
         <Route path="/settings" component={SettingsPage} />
         <Route component={NotFound} />
       </Switch>

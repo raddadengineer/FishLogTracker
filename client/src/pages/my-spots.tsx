@@ -32,7 +32,6 @@ export default function MySpotsPage() {
     };
   }, []);
 
-  const editingSpot = useMemo(() => spots.find((s) => s.id === editingId) || null, [spots, editingId]);
   const spotStats = useMemo(() => {
     const list = Array.isArray(catches) ? (catches as any[]) : [];
     const byName = new Map<
@@ -114,8 +113,8 @@ export default function MySpotsPage() {
               <Card key={s.id} className="bg-white shadow-sm border border-gray-100">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base">
-                    <Link href={`/my-spots/${encodeURIComponent(s.id)}`}>
-                      <a className="hover:underline">{s.name}</a>
+                    <Link href={`/my-spots/${encodeURIComponent(s.id)}`} className="hover:underline">
+                      {s.name}
                     </Link>
                   </CardTitle>
                 </CardHeader>

@@ -11,6 +11,9 @@ import { Loader2 } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { heatLayer } from "@linkurious/leaflet-heat";
+import "leaflet.markercluster";
+import "leaflet.markercluster/dist/MarkerCluster.css";
+import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 
 // Define marker types
 interface CatchMarker {
@@ -42,6 +45,7 @@ interface LeafletMapProps {
   withCard?: boolean;
   preferCatchCenter?: boolean;
   initialCenter?: { latitude: number; longitude: number; zoom?: number };
+  clusterMarkers?: boolean;
   onMarkerClick?: (markerId: number, type: 'catch' | 'lake') => void;
 }
 
@@ -53,6 +57,7 @@ export default function LeafletMap({
   withCard = true,
   preferCatchCenter = false,
   initialCenter,
+  clusterMarkers = true,
   onMarkerClick 
 }: LeafletMapProps) {
   const mapRef = useRef<L.Map | null>(null);
@@ -93,8 +98,21 @@ export default function LeafletMap({
       }).addTo(mapRef.current);
       
       // Create layer groups for markers
-      catchMarkersRef.current = L.layerGroup().addTo(mapRef.current);
-      lakeMarkersRef.current = L.layerGroup().addTo(mapRef.current);
+      if (clusterMarkers && (L as any).markerClusterGroup) {
+        catchMarkersRef.current = (L as any).markerClusterGroup({
+          showCoverageOnHover: false,
+          spiderfyOnMaxZoom: true,
+          disableClusteringAtZoom: 16,
+        }).addTo(mapRef.current);
+        lakeMarkersRef.current = (L as any).markerClusterGroup({
+          showCoverageOnHover: false,
+          spiderfyOnMaxZoom: true,
+          disableClusteringAtZoom: 14,
+        }).addTo(mapRef.current);
+      } else {
+        catchMarkersRef.current = L.layerGroup().addTo(mapRef.current);
+        lakeMarkersRef.current = L.layerGroup().addTo(mapRef.current);
+      }
       userLayerRef.current = L.layerGroup().addTo(mapRef.current);
       
       // Explicit center (e.g. My Spots deep link)

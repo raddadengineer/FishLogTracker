@@ -193,8 +193,24 @@ export default function CatchCard({ catchData, embeddedMap, embeddedMapActions }
             className="w-full h-48 object-cover"
           />
         ) : (
-          <div className="w-full h-48 bg-gray-200 flex items-center justify-center">
-            <span className="text-gray-400">No photo</span>
+          <div className="w-full h-48 relative overflow-hidden bg-gradient-to-br from-sky-100 via-blue-50 to-emerald-50">
+            {/* subtle pattern */}
+            <div className="absolute inset-0 opacity-40">
+              <div className="absolute -top-8 -left-8 w-40 h-40 rounded-full bg-white/70 blur-2xl" />
+              <div className="absolute -bottom-10 -right-10 w-52 h-52 rounded-full bg-white/60 blur-2xl" />
+            </div>
+
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="flex flex-col items-center gap-2 text-center px-6">
+                <div className="w-12 h-12 rounded-2xl bg-white/70 backdrop-blur flex items-center justify-center shadow-sm border border-white/60">
+                  <Fish className="h-6 w-6 text-sky-700" />
+                </div>
+                <div className="text-sm font-medium text-slate-700">No photo yet</div>
+                <div className="text-xs text-slate-500">
+                  Next time, snap a pic to show off the catch.
+                </div>
+              </div>
+            </div>
           </div>
         )}
         

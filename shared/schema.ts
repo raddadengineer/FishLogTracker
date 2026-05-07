@@ -216,40 +216,39 @@ export const commentsRelations = relations(comments, ({ one }) => ({
 }));
 
 // Schema validation
-export const insertUserSchema = createInsertSchema(users).omit({
+export const insertUserSchema = createInsertSchema(users as any).omit({
   createdAt: true,
   updatedAt: true,
-});
+} as any);
 
 export const upsertUserSchema = insertUserSchema.partial({
   passwordHash: true,
-  googleId: true,
-});
+} as any);
 
-export const insertCatchSchema = createInsertSchema(catches).omit({
+export const insertCatchSchema = createInsertSchema(catches as any).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
   isVerified: true,
-});
+} as any);
 
-export const insertCommentSchema = createInsertSchema(comments).omit({
+export const insertCommentSchema = createInsertSchema(comments as any).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
-});
+} as any);
 
-export const insertLakeSchema = createInsertSchema(lakes).omit({
+export const insertLakeSchema = createInsertSchema(lakes as any).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
-});
+} as any);
 
-export const insertMySpotSchema = createInsertSchema(mySpots).omit({
+export const insertMySpotSchema = createInsertSchema(mySpots as any).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
-});
+} as any);
 
 // Type exports
 export type UpsertUser = z.infer<typeof upsertUserSchema>;

@@ -68,10 +68,7 @@ export function endpointFromQueryKey(queryKey: readonly unknown[]): string {
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
-export const getQueryFn: <T>(options: {
-  on401: UnauthorizedBehavior;
-}) => QueryFunction<T> =
-  ({ on401: unauthorizedBehavior }) =>
+export const getQueryFn = (options: { on401: UnauthorizedBehavior }): QueryFunction<any> =>
   async ({ queryKey }) => {
     try {
       const endpoint = endpointFromQueryKey(queryKey);
@@ -80,7 +77,7 @@ export const getQueryFn: <T>(options: {
         credentials: "include",
       });
 
-      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+      if (options.on401 === "returnNull" && res.status === 401) {
         console.log(`401 Unauthorized for ${endpoint}, returning null`);
         return null;
       }
@@ -91,7 +88,7 @@ export const getQueryFn: <T>(options: {
       return data;
     } catch (error) {
       console.error(`Error in query function:`, error);
-      if (unauthorizedBehavior === "returnNull") {
+      if (options.on401 === "returnNull") {
         return null;
       }
       throw error;

@@ -307,7 +307,7 @@ async function requestBackgroundSync(): Promise<void> {
   try {
     if ('serviceWorker' in navigator && 'SyncManager' in window) {
       const registration = await navigator.serviceWorker.ready;
-      await registration.sync.register('sync-catches');
+      await (registration as any).sync?.register?.('sync-catches');
     }
   } catch (error) {
     console.error('Background sync registration failed:', error);

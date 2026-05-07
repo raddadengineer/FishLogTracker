@@ -27,6 +27,7 @@ import {
   DialogTrigger, DialogFooter, DialogClose 
 } from "@/components/ui/dialog";
 import CatchForm from "@/components/catches/CatchForm";
+import { BADGES, computeEarnedBadges, type BadgeId } from "@/lib/badges";
 
 export default function ProfilePage() {
   const params = useParams();
@@ -80,6 +81,26 @@ export default function ProfilePage() {
     queryKey: [`/api/users/${userId}/catches`],
     enabled: !!userId,
   });
+
+  const earnedBadges = React.useMemo(() => computeEarnedBadges((catches as any[]) || []), [catches]);
+
+  useEffect(() => {
+    if (!isOwnProfile) return;
+    const key = `fishtracker_earned_badges_${userId}`;
+    const prev = new Set<BadgeId>(JSON.parse(localStorage.getItem(key) || "[]"));
+    const now = new Set<BadgeId>(earnedBadges as BadgeId[]);
+    const newly = [...now].filter((b) => !prev.has(b));
+    if (newly.length > 0) {
+      const first = BADGES.find((b) => b.id === newly[0]);
+      if (first) {
+        toast({
+          title: `New badge: ${first.name}`,
+          description: first.description,
+        });
+      }
+      localStorage.setItem(key, JSON.stringify(Array.from(now)));
+    }
+  }, [earnedBadges, isOwnProfile, toast, userId]);
 
   // Fetch user stats
   const { data: stats, isLoading: isLoadingStats } = useQuery({
@@ -506,6 +527,10 @@ export default function ProfilePage() {
               <Fish className="h-4 w-4 mr-1" />
               Catches
             </TabsTrigger>
+            <TabsTrigger value="badges" className="flex-1 flex items-center justify-center">
+              <Trophy className="h-4 w-4 mr-1" />
+              Badges
+            </TabsTrigger>
             <TabsTrigger value="stats" className="flex-1 flex items-center justify-center">
               <Award className="h-4 w-4 mr-1" />
               Stats
@@ -559,6 +584,52 @@ export default function ProfilePage() {
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+
+          {/* Badges tab */}
+          <TabsContent value="badges" className="pt-4">
+            <Card className="mb-4">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Trophy className="h-5 w-5 text-amber-600" />
+                  Badges
+                </CardTitle>
+                <CardDescription>
+                  Earn badges as you log catches. {earnedBadges.length}/{BADGES.length} unlocked.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {BADGES.map((b) => {
+                    const unlocked = (earnedBadges as BadgeId[]).includes(b.id);
+                    return (
+                      <div
+                        key={b.id}
+                        className={[
+                          "rounded-xl border p-3 bg-white",
+                          unlocked ? "border-amber-200 bg-amber-50/40" : "border-gray-100 opacity-70",
+                        ].join(" ")}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="text-2xl">{unlocked ? b.icon : "🔒"}</div>
+                          {unlocked ? (
+                            <Badge className="bg-amber-600/10 text-amber-700 border border-amber-200" variant="outline">
+                              Earned
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-gray-50 text-gray-600 border border-gray-200" variant="outline">
+                              Locked
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="mt-2 font-medium text-sm">{b.name}</div>
+                        <div className="text-xs text-gray-600 mt-0.5">{b.description}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
           
           {/* Stats tab */}

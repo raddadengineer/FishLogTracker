@@ -21,6 +21,8 @@ export interface OfflineCatch {
   createdAt: string;
   synced: boolean;
   userId?: string;
+  lastSyncError?: string;
+  syncAttempts?: number;
 }
 
 // Storage keys
@@ -73,10 +75,23 @@ export function updateOfflineCatch(id: string, updateData: Partial<OfflineCatch>
     ...catches[index],
     ...updateData,
     synced: false,
+    lastSyncError: undefined,
   };
   
   localStorage.setItem(OFFLINE_CATCHES_KEY, JSON.stringify(catches));
   
+  return catches[index];
+}
+
+function setCatchSyncMeta(
+  id: string,
+  patch: Partial<Pick<OfflineCatch, "synced" | "lastSyncError" | "syncAttempts">>,
+): OfflineCatch | null {
+  const catches = getOfflineCatches();
+  const index = catches.findIndex((c) => c.id === id);
+  if (index === -1) return null;
+  catches[index] = { ...catches[index], ...patch };
+  localStorage.setItem(OFFLINE_CATCHES_KEY, JSON.stringify(catches));
   return catches[index];
 }
 
@@ -95,7 +110,94 @@ export function deleteOfflineCatch(id: string): boolean {
 
 // Mark a catch as synced
 export function markCatchAsSynced(id: string): boolean {
-  return !!updateOfflineCatch(id, { synced: true });
+  return !!setCatchSyncMeta(id, { synced: true, lastSyncError: undefined });
+}
+
+async function postOfflineCatchToServer(offlineCatch: OfflineCatch): Promise<{ res: Response; photosCount: number }> {
+  const photos = offlineCatch.photosCount ? await getCatchPhotos(offlineCatch.id) : [];
+
+  let body: BodyInit;
+  let headers: Record<string, string> = { ...clientAuthHeaders() };
+
+  if (photos.length > 0) {
+    const form = new FormData();
+    for (const p of photos) {
+      form.append("photos", p, `photo-${offlineCatch.id}.jpg`);
+    }
+    const fields: Record<string, any> = {
+      species: offlineCatch.species,
+      size: offlineCatch.size,
+      weight: offlineCatch.weight,
+      lakeName: offlineCatch.lakeName,
+      lakeId: offlineCatch.lakeId,
+      latitude: offlineCatch.latitude,
+      longitude: offlineCatch.longitude,
+      temperature: offlineCatch.temperature,
+      depth: offlineCatch.depth,
+      lure: offlineCatch.lure,
+      comments: offlineCatch.comments,
+      catchDate: offlineCatch.catchDate,
+    };
+    Object.entries(fields).forEach(([k, v]) => {
+      if (v === undefined || v === null || v === "") return;
+      form.append(k, String(v));
+    });
+    body = form;
+  } else {
+    headers["Content-Type"] = "application/json";
+    body = JSON.stringify({
+      species: offlineCatch.species,
+      size: offlineCatch.size,
+      weight: offlineCatch.weight,
+      lakeName: offlineCatch.lakeName,
+      lakeId: offlineCatch.lakeId,
+      latitude: offlineCatch.latitude,
+      longitude: offlineCatch.longitude,
+      temperature: offlineCatch.temperature,
+      depth: offlineCatch.depth,
+      lure: offlineCatch.lure,
+      comments: offlineCatch.comments,
+      catchDate: offlineCatch.catchDate,
+    });
+  }
+
+  const res = await fetch("/api/catches", {
+    method: "POST",
+    credentials: "include",
+    headers,
+    body,
+  });
+
+  return { res, photosCount: photos.length };
+}
+
+export async function syncOfflineCatchById(id: string): Promise<{ ok: boolean; message: string }> {
+  if (!navigator.onLine) return { ok: false, message: "Cannot sync while offline" };
+
+  const row = getOfflineCatches().find((c) => c.id === id);
+  if (!row) return { ok: false, message: "Offline catch not found" };
+  if (row.synced) return { ok: true, message: "Already synced" };
+
+  const attempts = (row.syncAttempts ?? 0) + 1;
+  setCatchSyncMeta(id, { syncAttempts: attempts, lastSyncError: undefined, synced: false });
+
+  try {
+    const { res, photosCount } = await postOfflineCatchToServer(row);
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      const msg = text || `HTTP ${res.status}`;
+      setCatchSyncMeta(id, { lastSyncError: msg, synced: false, syncAttempts: attempts });
+      return { ok: false, message: msg };
+    }
+
+    markCatchAsSynced(id);
+    if (photosCount > 0) await deleteCatchPhotos(id);
+    return { ok: true, message: "Synced" };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Sync failed";
+    setCatchSyncMeta(id, { lastSyncError: msg, synced: false, syncAttempts: attempts });
+    return { ok: false, message: msg };
+  }
 }
 
 // Get sync status
@@ -152,73 +254,27 @@ export async function syncOfflineCatches(): Promise<{
     
     // Process each catch
     for (const offlineCatch of catches) {
+      const attempts = (offlineCatch.syncAttempts ?? 0) + 1;
+      setCatchSyncMeta(offlineCatch.id, { syncAttempts: attempts, lastSyncError: undefined, synced: false });
       try {
-        const photos = offlineCatch.photosCount ? await getCatchPhotos(offlineCatch.id) : [];
-
-        let body: BodyInit;
-        let headers: Record<string, string> = { ...clientAuthHeaders() };
-
-        if (photos.length > 0) {
-          const form = new FormData();
-          for (const p of photos) {
-            form.append("photos", p, `photo-${offlineCatch.id}.jpg`);
-          }
-          const fields: Record<string, any> = {
-            species: offlineCatch.species,
-            size: offlineCatch.size,
-            weight: offlineCatch.weight,
-            lakeName: offlineCatch.lakeName,
-            lakeId: offlineCatch.lakeId,
-            latitude: offlineCatch.latitude,
-            longitude: offlineCatch.longitude,
-            temperature: offlineCatch.temperature,
-            depth: offlineCatch.depth,
-            lure: offlineCatch.lure,
-            comments: offlineCatch.comments,
-            catchDate: offlineCatch.catchDate,
-          };
-          Object.entries(fields).forEach(([k, v]) => {
-            if (v === undefined || v === null || v === "") return;
-            form.append(k, String(v));
-          });
-          body = form;
-          // Let browser set multipart boundary
-        } else {
-          headers["Content-Type"] = "application/json";
-          body = JSON.stringify({
-            species: offlineCatch.species,
-            size: offlineCatch.size,
-            weight: offlineCatch.weight,
-            lakeName: offlineCatch.lakeName,
-            lakeId: offlineCatch.lakeId,
-            latitude: offlineCatch.latitude,
-            longitude: offlineCatch.longitude,
-            temperature: offlineCatch.temperature,
-            depth: offlineCatch.depth,
-            lure: offlineCatch.lure,
-            comments: offlineCatch.comments,
-            catchDate: offlineCatch.catchDate,
-          });
-        }
-
-        const response = await fetch("/api/catches", {
-          method: "POST",
-          credentials: "include",
-          headers,
-          body,
-        });
+        const { res: response, photosCount } = await postOfflineCatchToServer(offlineCatch);
         
         if (response.ok) {
           markCatchAsSynced(offlineCatch.id);
-          if (photos.length > 0) {
+          if (photosCount > 0) {
             await deleteCatchPhotos(offlineCatch.id);
           }
           syncedCount++;
         } else {
+          const text = await response.text().catch(() => "");
+          const msg = text || `HTTP ${response.status}`;
+          setCatchSyncMeta(offlineCatch.id, { lastSyncError: msg, synced: false, syncAttempts: attempts });
           failedCount++;
         }
       } catch (error) {
+        const msg = error instanceof Error ? error.message : "Sync failed";
         console.error('Error syncing catch:', error);
+        setCatchSyncMeta(offlineCatch.id, { lastSyncError: msg, synced: false, syncAttempts: attempts });
         failedCount++;
       }
     }

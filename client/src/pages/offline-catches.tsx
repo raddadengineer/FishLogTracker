@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   deleteOfflineCatch,
   getOfflineCatches,
+  syncOfflineCatchById,
   syncOfflineCatches,
   type OfflineCatch,
 } from "@/lib/localStorageSync";
@@ -75,6 +76,24 @@ export default function OfflineCatchesPage() {
       setRows(getOfflineCatches());
       toast({ title: "Deleted", description: "Removed offline catch." });
     }
+  };
+
+  const onRetryOne = async (id: string) => {
+    if (!navigator.onLine) {
+      toast({
+        title: "Offline",
+        description: "Connect to the internet to sync your offline catches.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const res = await syncOfflineCatchById(id);
+    toast({
+      title: res.ok ? "Synced" : "Sync failed",
+      description: res.message,
+      variant: res.ok ? "default" : "destructive",
+    });
+    setRows(getOfflineCatches());
   };
 
   return (
@@ -153,9 +172,25 @@ export default function OfflineCatchesPage() {
                     {c.comments ? (
                       <div className="text-sm text-gray-700 mt-2 line-clamp-2">{c.comments}</div>
                     ) : null}
+                    {!c.synced && c.lastSyncError ? (
+                      <div className="mt-2 text-xs text-red-700">
+                        Last sync error: <span className="font-mono">{c.lastSyncError}</span>
+                      </div>
+                    ) : null}
                   </div>
 
                   <div className="flex flex-col items-end gap-2 shrink-0">
+                    {!c.synced ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={!isOnline}
+                        onClick={() => onRetryOne(c.id)}
+                      >
+                        <i className="ri-refresh-line mr-1"></i>
+                        Retry
+                      </Button>
+                    ) : null}
                     <Button
                       variant="outline"
                       size="sm"

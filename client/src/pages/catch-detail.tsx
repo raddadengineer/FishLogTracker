@@ -8,6 +8,10 @@ import CatchCard from "@/components/catches/CatchCard";
 import LeafletMap from "@/components/maps/LeafletMap";
 import { formatCoordinates, formatDepth } from "@/lib/utils";
 import { useSettings } from "@/hooks/useSettings";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import CatchPinEditor from "@/components/maps/CatchPinEditor";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 type CatchApi = {
   id: number;
@@ -27,6 +31,8 @@ export default function CatchDetailPage() {
   const params = useParams<{ id: string }>();
   const idNum = params.id ? parseInt(params.id, 10) : NaN;
   const { settings, updateSetting, saveSettings } = useSettings();
+  const { toast } = useToast();
+  const [isEditPinOpen, setIsEditPinOpen] = useState(false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["/api/catches", idNum],
@@ -135,6 +141,38 @@ export default function CatchDetailPage() {
     if (!hasGps) return null;
     return (
       <div className="flex items-center gap-2">
+        <Dialog open={isEditPinOpen} onOpenChange={setIsEditPinOpen}>
+          <DialogTrigger asChild>
+            <Button type="button" size="sm" variant="outline">
+              Adjust pin
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Adjust catch location</DialogTitle>
+            </DialogHeader>
+            <CatchPinEditor
+              initialLat={lat}
+              initialLng={lng}
+              onCancel={() => setIsEditPinOpen(false)}
+              onSave={async (next) => {
+                const res = await apiRequest("PUT", `/api/catches/${idNum}`, next);
+                if (!res.ok) {
+                  toast({
+                    title: "Save failed",
+                    description: "Could not update the catch location.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                queryClient.invalidateQueries({ queryKey: ["/api/catches", idNum] });
+                queryClient.invalidateQueries({ queryKey: ["/api/catches"] });
+                toast({ title: "Saved", description: "Catch location updated." });
+                setIsEditPinOpen(false);
+              }}
+            />
+          </DialogContent>
+        </Dialog>
         <Button
           type="button"
           size="sm"
@@ -159,7 +197,7 @@ export default function CatchDetailPage() {
         </Button>
       </div>
     );
-  }, [hasGps, settings.mapEmbedProvider, updateSetting, saveSettings]);
+  }, [hasGps, settings.mapEmbedProvider, updateSetting, saveSettings, isEditPinOpen, lat, lng, idNum, toast]);
 
   return (
     <div className="container max-w-xl mx-auto py-6 px-4">

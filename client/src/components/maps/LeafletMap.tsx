@@ -56,6 +56,7 @@ interface LeafletMapProps {
   clusterMarkers?: boolean;
   onMarkerClick?: (markerId: number, type: 'catch' | 'lake') => void;
   onSpotClick?: (spotId: string) => void;
+  onSpotLogCatch?: (spotId: string) => void;
 }
 
 export default function LeafletMap({ 
@@ -70,6 +71,7 @@ export default function LeafletMap({
   clusterMarkers = true,
   onMarkerClick,
   onSpotClick,
+  onSpotLogCatch,
 }: LeafletMapProps) {
   const mapRef = useRef<L.Map | null>(null);
   const catchMarkersRef = useRef<L.LayerGroup | null>(null);
@@ -356,6 +358,9 @@ export default function LeafletMap({
         <div class="spot-popup">
           <h4 class="font-medium">${String(s.name).replaceAll("<", "&lt;").replaceAll(">", "&gt;")}</h4>
           <p class="text-xs text-gray-600">Saved spot</p>
+          <button data-spot-id="${encodeURIComponent(s.id)}" class="log-spot-btn mt-2 bg-emerald-600 text-white text-xs px-2 py-1 rounded">
+            Log catch here
+          </button>
         </div>
       `);
 
@@ -363,9 +368,22 @@ export default function LeafletMap({
         onSpotClick?.(s.id);
       });
 
+      marker.on("popupopen", (e: any) => {
+        const el = e?.popup?.getElement?.() as HTMLElement | null;
+        if (!el) return;
+        const btn = el.querySelector<HTMLButtonElement>(".log-spot-btn");
+        if (!btn) return;
+        btn.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          onSpotLogCatch?.(s.id);
+          marker.closePopup();
+        };
+      });
+
       marker.addTo(mySpotMarkersRef.current!);
     });
-  }, [mySpots, onSpotClick]);
+  }, [mySpots, onSpotClick, onSpotLogCatch]);
 
   // Center map on user location
   const centerOnUserLocation = async () => {

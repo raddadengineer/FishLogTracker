@@ -195,6 +195,14 @@ export default function MapPage() {
     setActiveTab("list");
   };
 
+  const handleSpotLogCatch = (spotId: string) => {
+    const s = mySpots.find((x) => x.id === spotId);
+    if (!s) return;
+    setCatchPrefill({ lakeName: s.name, latitude: s.latitude, longitude: s.longitude });
+    setIsLogCatchOpen(true);
+    setActiveTab("map");
+  };
+
   // Close details panel
   const closeDetails = () => {
     setSelectedCatch(null);
@@ -313,6 +321,7 @@ export default function MapPage() {
             height="60vh"
             onMarkerClick={handleMarkerClick}
             onSpotClick={handleSpotClick}
+            onSpotLogCatch={handleSpotLogCatch}
             initialCenter={mapCenter ?? undefined}
           />
         </TabsContent>

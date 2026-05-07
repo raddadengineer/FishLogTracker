@@ -13,9 +13,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import CatchForm from "@/components/catches/CatchForm";
 import { Button } from "@/components/ui/button";
 import { computeStreak } from "@/lib/funStats";
+import { Progress } from "@/components/ui/progress";
+import { challengeCompletionStorageKey, computeWeeklyChallenges } from "@/lib/challenges";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Home() {
   const { user, isAuthenticated } = useAuth();
+  const { toast } = useToast();
   const { syncStatus, hasUnsyncedCatches, triggerSync } = useOfflineSync();
   const [timeframe, setTimeframe] = useState<'month' | 'year' | 'all'>('month');
 
@@ -66,6 +70,23 @@ export default function Home() {
   });
 
   const streak = useMemo(() => computeStreak((userCatches as any[]) || []), [userCatches]);
+  const weeklyChallenges = useMemo(() => computeWeeklyChallenges((userCatches as any[]) || []), [userCatches]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const key = challengeCompletionStorageKey((user as any)?.id || localStorage.getItem("currentUserId"));
+    const prev = new Set<string>(JSON.parse(localStorage.getItem(key) || "[]"));
+    const newly = weeklyChallenges.filter((c) => c.completed && !prev.has(c.id)).map((c) => c);
+    if (newly.length > 0) {
+      const first = newly[0];
+      toast({
+        title: `🏁 Challenge complete: ${first.title}`,
+        description: first.description,
+      });
+      newly.forEach((c) => prev.add(c.id));
+      localStorage.setItem(key, JSON.stringify(Array.from(prev)));
+    }
+  }, [weeklyChallenges, isAuthenticated, toast, user]);
   
   // Calculate changes dynamically based on actual catch data
   const [catchChange, setCatchChange] = useState(0);
@@ -252,6 +273,54 @@ export default function Home() {
           </div>
         )}
       </section>
+
+      {isAuthenticated && (
+        <section className="mb-6">
+          <Card className="rounded-xl overflow-hidden shadow-sm border border-gray-100 bg-white">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-semibold">Weekly Challenges</div>
+                  <div className="text-xs text-gray-500">Complete challenges to earn bragging rights.</div>
+                </div>
+                <div className="text-xs text-gray-600">
+                  {weeklyChallenges.filter((c) => c.completed).length}/{weeklyChallenges.length}
+                </div>
+              </div>
+
+              <div className="mt-3 space-y-3">
+                {weeklyChallenges.map((c) => {
+                  const pct = Math.round((c.current / c.target) * 100);
+                  return (
+                    <div key={c.id} className="rounded-lg border border-gray-100 p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">{c.icon}</span>
+                            <div className="font-medium text-sm">{c.title}</div>
+                            {c.completed ? (
+                              <span className="text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">
+                                Complete
+                              </span>
+                            ) : null}
+                          </div>
+                          <div className="text-xs text-gray-600 mt-0.5">{c.description}</div>
+                        </div>
+                        <div className="text-xs text-gray-600 shrink-0">
+                          {c.current}/{c.target}
+                        </div>
+                      </div>
+                      <div className="mt-2">
+                        <Progress value={c.completed ? 100 : pct} className="h-2 bg-gray-100" />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+      )}
 
       {/* Quick actions */}
       <section className="mb-6">

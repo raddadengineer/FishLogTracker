@@ -21,6 +21,19 @@ export default function MapPage() {
   const { location, getLocation } = useLocation();
   const [activeTab, setActiveTab] = useState<string>("map");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [filters, setFilters] = useState<{
+    species: string;
+    lake: string;
+    hasGps: boolean;
+    hasPhoto: boolean;
+    last30Days: boolean;
+  }>({
+    species: "",
+    lake: "",
+    hasGps: false,
+    hasPhoto: false,
+    last30Days: false,
+  });
   const [selectedCatch, setSelectedCatch] = useState<number | null>(null);
   const [selectedLake, setSelectedLake] = useState<number | null>(null);
   const [displayedCatches, setDisplayedCatches] = useState<any[]>([]);
@@ -65,19 +78,54 @@ export default function MapPage() {
   useEffect(() => {
     if (!catches || !Array.isArray(catches)) return;
     
-    if (!searchQuery) {
-      setDisplayedCatches(catches);
-      return;
-    }
-    
-    const filtered = catches.filter(catchItem => 
-      catchItem.species.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      catchItem.lakeName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      catchItem.user?.username?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const q = searchQuery.trim().toLowerCase();
+    const speciesQ = filters.species.trim().toLowerCase();
+    const lakeQ = filters.lake.trim().toLowerCase();
+    const now = Date.now();
+    const cutoff = now - 30 * 24 * 60 * 60 * 1000;
+
+    const filtered = catches.filter((catchItem: any) => {
+      const haystack = [
+        String(catchItem.species ?? ""),
+        String(catchItem.lakeName ?? ""),
+        String(catchItem.user?.username ?? ""),
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      if (q && !haystack.includes(q)) return false;
+
+      if (speciesQ) {
+        const sp = String(getFishSpeciesById(catchItem.species)?.name || catchItem.species || "").toLowerCase();
+        if (!sp.includes(speciesQ)) return false;
+      }
+
+      if (lakeQ) {
+        const lk = String(catchItem.lakeName || "").toLowerCase();
+        if (!lk.includes(lakeQ)) return false;
+      }
+
+      if (filters.hasGps) {
+        const la = Number(catchItem.latitude);
+        const ln = Number(catchItem.longitude);
+        if (!Number.isFinite(la) || !Number.isFinite(ln)) return false;
+      }
+
+      if (filters.hasPhoto) {
+        const has = Array.isArray(catchItem.photos) ? catchItem.photos.length > 0 : Boolean(catchItem.photoData?.length);
+        if (!has) return false;
+      }
+
+      if (filters.last30Days) {
+        const t = new Date(catchItem.catchDate ?? catchItem.createdAt ?? 0).getTime();
+        if (!Number.isFinite(t) || t < cutoff) return false;
+      }
+
+      return true;
+    });
     
     setDisplayedCatches(filtered);
-  }, [searchQuery, catches]);
+  }, [searchQuery, catches, filters]);
 
   // Handle marker click
   const handleMarkerClick = (id: number, type: 'catch' | 'lake') => {
@@ -295,10 +343,81 @@ export default function MapPage() {
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <h3 className="font-medium">Recent Catches</h3>
-              <Button variant="ghost" size="sm">
-                <Filter className="h-3 w-3 mr-1" />
-                Filter
-              </Button>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    <Filter className="h-3 w-3 mr-1" />
+                    Filter
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[520px]">
+                  <DialogHeader>
+                    <DialogTitle>Filter catches</DialogTitle>
+                  </DialogHeader>
+                  <div className="grid gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <div className="text-sm font-medium mb-1">Species</div>
+                        <Input
+                          value={filters.species}
+                          onChange={(e) => setFilters((p) => ({ ...p, species: e.target.value }))}
+                          placeholder="e.g. Walleye"
+                        />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium mb-1">Lake</div>
+                        <Input
+                          value={filters.lake}
+                          onChange={(e) => setFilters((p) => ({ ...p, lake: e.target.value }))}
+                          placeholder="e.g. Prior Lake"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant={filters.hasGps ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setFilters((p) => ({ ...p, hasGps: !p.hasGps }))}
+                      >
+                        Has GPS
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={filters.hasPhoto ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setFilters((p) => ({ ...p, hasPhoto: !p.hasPhoto }))}
+                      >
+                        Has photo
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={filters.last30Days ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setFilters((p) => ({ ...p, last30Days: !p.last30Days }))}
+                      >
+                        Last 30 days
+                      </Button>
+                    </div>
+
+                    <div className="flex justify-between items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() =>
+                          setFilters({ species: "", lake: "", hasGps: false, hasPhoto: false, last30Days: false })
+                        }
+                      >
+                        Clear
+                      </Button>
+                      <div className="text-sm text-gray-500">
+                        Showing <span className="font-medium text-gray-700">{displayedCatches.length}</span>
+                      </div>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
             
             {isLoadingCatches ? (

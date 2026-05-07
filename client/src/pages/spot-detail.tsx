@@ -110,6 +110,7 @@ export default function SpotDetailPage() {
             height="320px"
             withCard={false}
             showControls={false}
+            clusterMarkers={false}
             initialCenter={{ latitude: spot.latitude, longitude: spot.longitude, zoom: 13 }}
           />
         </CardContent>

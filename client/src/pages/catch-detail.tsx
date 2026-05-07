@@ -134,6 +134,7 @@ export default function CatchDetailPage() {
         showControls
         withCard={false}
         preferCatchCenter
+        clusterMarkers={false}
       />
     );
   }, [hasGps, settings.mapEmbedProvider, lat, lng, mapCatches]);

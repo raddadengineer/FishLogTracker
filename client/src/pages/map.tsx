@@ -12,7 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import SpotChip from "@/components/maps/SpotChip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import CatchForm from "@/components/catches/CatchForm";
-import { Search, Fish, Map, Filter, Plus } from "lucide-react";
+import { Search, Fish, Map, Filter, Plus, Crosshair } from "lucide-react";
 import { formatDate, formatSize, formatWeight } from "@/lib/utils";
 import { getFishSpeciesById } from "@/lib/fishSpecies";
 import { useToast } from "@/hooks/use-toast";
@@ -20,7 +20,7 @@ import { isSpotSaved, removeSpot, saveSpot } from "@/lib/mySpots";
 
 export default function MapPage() {
   const [_, navigate] = useWouterLocation();
-  const { location, getLocation } = useLocation();
+  const { location, getLocation, isLoading: isLocLoading } = useLocation();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<string>("map");
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -193,7 +193,31 @@ export default function MapPage() {
     <>
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-xl font-semibold">Explore Fishing Spots</h1>
-        <Dialog open={isLogCatchOpen} onOpenChange={setIsLogCatchOpen}>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isLocLoading}
+            onClick={async () => {
+              try {
+                const loc = await getLocation();
+                if (!loc) return;
+                setMapCenter({ latitude: loc.latitude, longitude: loc.longitude, zoom: 14 });
+                setActiveTab("map");
+              } catch {
+                toast({
+                  title: "Location Error",
+                  description: "Could not access your location.",
+                  variant: "destructive",
+                });
+              }
+            }}
+          >
+            <Crosshair className="h-4 w-4 mr-1" />
+            Near me
+          </Button>
+
+          <Dialog open={isLogCatchOpen} onOpenChange={setIsLogCatchOpen}>
           <DialogTrigger asChild>
             <Button size="sm">
               <Plus className="h-4 w-4 mr-1" />
@@ -206,7 +230,8 @@ export default function MapPage() {
             </DialogHeader>
             <CatchForm prefill={catchPrefill ?? undefined} onSuccess={() => setIsLogCatchOpen(false)} />
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </div>
 
       {/* Search bar */}

@@ -58,6 +58,12 @@ function Router() {
         <Route path="/admin" component={AdminPage} />
         <Route path="/test-catch" component={TestCatchPage} />
         <Route path="/offline-catches" component={OfflineCatchesPage} />
+        <Route path="/my-spot/:id">
+          {(params) => <Redirect to={`/my-spots/${params.id}`} />}
+        </Route>
+        <Route path="/my-spot">
+          <Redirect to="/my-spots" />
+        </Route>
         <Route path="/my-spots" component={MySpotsPage} />
         <Route path="/my-spots/:id" component={SpotDetailPage} />
         <Route path="/settings" component={SettingsPage} />

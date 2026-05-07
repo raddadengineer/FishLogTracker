@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { addManySpots, dedupeMySpots, getMySpots, removeSpot, updateSpot, type MySpot } from "@/lib/mySpots";
 import { Map as MapIcon, Trash2, PlusCircle, Pencil } from "lucide-react";
@@ -19,6 +20,10 @@ export default function MySpotsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [isCloudSyncing, setIsCloudSyncing] = useState(false);
+  const [query, setQuery] = useState("");
+  const [onlyNotes, setOnlyNotes] = useState(false);
+  const [visitedRecently, setVisitedRecently] = useState(false);
+  const [sortBy, setSortBy] = useState<"recent" | "name" | "mostCatches">("recent");
 
   const { data: catches = [] } = useQuery({
     queryKey: ["/api/catches"],
@@ -85,6 +90,48 @@ export default function MySpotsPage() {
 
     return byName;
   }, [catches, spots]);
+
+  const filteredSpots = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const now = Date.now();
+    const recentCutoff = now - 30 * 24 * 60 * 60 * 1000;
+
+    let list = spots.slice();
+
+    if (q) {
+      list = list.filter((s) => {
+        const hay = `${s.name} ${s.notes || ""}`.toLowerCase();
+        if (hay.includes(q)) return true;
+        const st = spotStats.get(s.name.trim().toLowerCase());
+        const sp = st?.topSpecies ? String(getFishSpeciesById(st.topSpecies)?.name || st.topSpecies).toLowerCase() : "";
+        return sp.includes(q);
+      });
+    }
+
+    if (onlyNotes) list = list.filter((s) => Boolean(s.notes && s.notes.trim()));
+
+    if (visitedRecently) {
+      list = list.filter((s) => {
+        const t = s.lastVisitedAt ? new Date(s.lastVisitedAt).getTime() : 0;
+        return Number.isFinite(t) && t >= recentCutoff;
+      });
+    }
+
+    list.sort((a, b) => {
+      if (sortBy === "name") return a.name.localeCompare(b.name);
+      if (sortBy === "mostCatches") {
+        const ac = spotStats.get(a.name.trim().toLowerCase())?.count ?? 0;
+        const bc = spotStats.get(b.name.trim().toLowerCase())?.count ?? 0;
+        return bc - ac;
+      }
+      // recent (default)
+      const at = new Date(a.lastVisitedAt || a.createdAt || 0).getTime();
+      const bt = new Date(b.lastVisitedAt || b.createdAt || 0).getTime();
+      return bt - at;
+    });
+
+    return list;
+  }, [spots, query, onlyNotes, visitedRecently, sortBy, spotStats]);
 
   const importCandidates = useMemo(() => {
     const list = Array.isArray(catches) ? (catches as any[]) : [];
@@ -221,6 +268,39 @@ export default function MySpotsPage() {
         </div>
       </div>
 
+      <Card className="bg-white border border-gray-100 shadow-sm">
+        <CardContent className="p-3 space-y-2">
+          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search spots, notes, species…" />
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" size="sm" variant={onlyNotes ? "default" : "outline"} onClick={() => setOnlyNotes((v) => !v)}>
+              Has notes
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={visitedRecently ? "default" : "outline"}
+              onClick={() => setVisitedRecently((v) => !v)}
+            >
+              Visited 30d
+            </Button>
+            <div className="flex items-center gap-1 ml-auto">
+              <Button type="button" size="sm" variant={sortBy === "recent" ? "default" : "outline"} onClick={() => setSortBy("recent")}>
+                Recent
+              </Button>
+              <Button type="button" size="sm" variant={sortBy === "mostCatches" ? "default" : "outline"} onClick={() => setSortBy("mostCatches")}>
+                Most catches
+              </Button>
+              <Button type="button" size="sm" variant={sortBy === "name" ? "default" : "outline"} onClick={() => setSortBy("name")}>
+                A–Z
+              </Button>
+            </div>
+          </div>
+          <div className="text-xs text-gray-600">
+            Showing <span className="font-medium text-gray-800">{filteredSpots.length}</span> spot(s)
+          </div>
+        </CardContent>
+      </Card>
+
       {spots.length === 0 ? (
         <Card>
           <CardContent className="p-4 text-sm text-gray-600">
@@ -229,10 +309,7 @@ export default function MySpotsPage() {
         </Card>
       ) : (
         <div className="space-y-3">
-          {spots
-            .slice()
-            .reverse()
-            .map((s) => (
+          {filteredSpots.map((s) => (
               <Card key={s.id} className="bg-white shadow-sm border border-gray-100">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base">

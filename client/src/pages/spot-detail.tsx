@@ -59,6 +59,10 @@ export default function SpotDetailPage() {
     const byMonth = new Array(12).fill(0) as number[];
     const lureCounts: Record<string, number> = {};
     const speciesCounts: Record<string, number> = {};
+    const topLureBySpecies: Record<string, Record<string, number>> = {};
+    const pbBySpecies: Record<string, { size: number; catchId?: number; when?: string }> = {};
+    const weatherCounts: Record<string, number> = {};
+    const windDirCounts: Record<string, number> = {};
 
     for (const c of spotCatches) {
       const dt = new Date(c.catchDate ?? c.createdAt ?? 0);
@@ -72,6 +76,37 @@ export default function SpotDetailPage() {
 
       const sp = String(c.species ?? "").trim();
       if (sp) speciesCounts[sp] = (speciesCounts[sp] || 0) + 1;
+
+      if (sp && lure) {
+        topLureBySpecies[sp] = topLureBySpecies[sp] || {};
+        topLureBySpecies[sp][lure] = (topLureBySpecies[sp][lure] || 0) + 1;
+      }
+
+      const sz = Number(c.size);
+      if (sp && Number.isFinite(sz)) {
+        const prev = pbBySpecies[sp];
+        if (!prev || sz > prev.size) {
+          pbBySpecies[sp] = {
+            size: sz,
+            catchId: typeof c.id === "number" ? c.id : Number(c.id),
+            when: String(c.catchDate ?? c.createdAt ?? ""),
+          };
+        }
+      }
+
+      const wd = (c as any).weatherData;
+      if (wd && typeof wd === "object") {
+        const main = String((wd as any)?.weather?.main ?? (wd as any)?.weather ?? "").trim();
+        if (main) weatherCounts[main] = (weatherCounts[main] || 0) + 1;
+
+        const deg = Number((wd as any)?.wind?.deg ?? (wd as any)?.windDeg);
+        if (Number.isFinite(deg)) {
+          const dirs = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"] as const;
+          const idx = Math.round(((deg % 360) / 45)) % 8;
+          const dir = dirs[idx];
+          windDirCounts[dir] = (windDirCounts[dir] || 0) + 1;
+        }
+      }
     }
 
     const bestHour = byHour
@@ -87,6 +122,23 @@ export default function SpotDetailPage() {
       .slice(0, 6)
       .map(([species, count]) => ({ species, count }));
 
+    const topLureBySpeciesList = Object.entries(topLureBySpecies)
+      .map(([species, lures]) => {
+        const top = Object.entries(lures).sort((a, b) => b[1] - a[1])[0];
+        return top ? { species, lure: top[0], count: top[1] } : null;
+      })
+      .filter(Boolean)
+      .sort((a: any, b: any) => b.count - a.count)
+      .slice(0, 6) as Array<{ species: string; lure: string; count: number }>;
+
+    const pbBySpeciesList = Object.entries(pbBySpecies)
+      .map(([species, pb]) => ({ species, ...pb }))
+      .sort((a, b) => b.size - a.size)
+      .slice(0, 6);
+
+    const topWeather = Object.entries(weatherCounts).sort((a, b) => b[1] - a[1])[0];
+    const topWind = Object.entries(windDirCounts).sort((a, b) => b[1] - a[1])[0];
+
     const monthName = (m: number) =>
       ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m] || "—";
     const hourLabel = (h: number) => {
@@ -100,6 +152,10 @@ export default function SpotDetailPage() {
       bestMonth: bestMonth?.count ? { label: monthName(bestMonth.month), count: bestMonth.count } : null,
       topLure: topLure ? { lure: topLure[0], count: topLure[1] } : null,
       topSpeciesList,
+      topLureBySpeciesList,
+      pbBySpeciesList,
+      topWeather: topWeather ? { weather: topWeather[0], count: topWeather[1] } : null,
+      topWind: topWind ? { dir: topWind[0], count: topWind[1] } : null,
     };
   }, [spotCatches]);
 
@@ -260,6 +316,83 @@ export default function SpotDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Top lure by species</CardTitle>
+        </CardHeader>
+        <CardContent className="text-xs text-gray-700 space-y-2">
+          {insights.topLureBySpeciesList.length ? (
+            insights.topLureBySpeciesList.map((r) => (
+              <div key={r.species} className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-medium truncate">{getFishSpeciesById(r.species)?.name || r.species}</div>
+                  <div className="text-gray-600 truncate">{r.lure}</div>
+                </div>
+                <div className="text-gray-600 shrink-0">{r.count}</div>
+              </div>
+            ))
+          ) : (
+            <span className="text-gray-600">No lure data yet.</span>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">PB by species (at this spot)</CardTitle>
+        </CardHeader>
+        <CardContent className="text-xs text-gray-700 space-y-2">
+          {insights.pbBySpeciesList.length ? (
+            insights.pbBySpeciesList.map((r) => (
+              <div key={r.species} className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-medium truncate">{getFishSpeciesById(r.species)?.name || r.species}</div>
+                  <div className="text-gray-600 truncate">{r.catchId ? `Catch #${r.catchId}` : ""}</div>
+                </div>
+                <div className="shrink-0 font-medium">{formatSize(r.size)}</div>
+              </div>
+            ))
+          ) : (
+            <span className="text-gray-600">—</span>
+          )}
+        </CardContent>
+      </Card>
+
+      {(insights.topWeather || insights.topWind) ? (
+        <div className="grid grid-cols-2 gap-3">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Best weather</CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm">
+              {insights.topWeather ? (
+                <>
+                  <div className="text-lg font-semibold">{insights.topWeather.weather}</div>
+                  <div className="text-xs text-gray-600">{insights.topWeather.count} catches</div>
+                </>
+              ) : (
+                <span className="text-gray-600">—</span>
+              )}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Best wind</CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm">
+              {insights.topWind ? (
+                <>
+                  <div className="text-lg font-semibold">{insights.topWind.dir}</div>
+                  <div className="text-xs text-gray-600">{insights.topWind.count} catches</div>
+                </>
+              ) : (
+                <span className="text-gray-600">—</span>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      ) : null}
 
       <Card>
         <CardHeader className="pb-2">

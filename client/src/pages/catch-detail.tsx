@@ -1,7 +1,7 @@
 import { Link, useParams } from "wouter";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Loader2, MapPin, ExternalLink, Share2 } from "lucide-react";
+import { ArrowLeft, Loader2, MapPin, ExternalLink, Share2, Bookmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import CatchCard from "@/components/catches/CatchCard";
@@ -13,6 +13,7 @@ import CatchPinEditor from "@/components/maps/CatchPinEditor";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { shareCatchCard } from "@/lib/shareCatchCard";
+import { isSpotSaved, removeSpot, saveSpot, spotIdFromNameCoords } from "@/lib/mySpots";
 
 type CatchApi = {
   id: number;
@@ -58,6 +59,16 @@ export default function CatchDetailPage() {
       hasGps: Number.isFinite(la) && Number.isFinite(ln),
     };
   }, [api]);
+
+  const spotKey = useMemo(() => {
+    if (!api?.lakeName || !hasGps) return null;
+    return spotIdFromNameCoords(String(api.lakeName), lat, lng);
+  }, [api?.lakeName, hasGps, lat, lng]);
+
+  const isSaved = useMemo(() => {
+    if (!spotKey) return false;
+    return isSpotSaved(spotKey);
+  }, [spotKey]);
 
   const mapCatches = useMemo(() => {
     if (!api || !hasGps) return [];
@@ -143,6 +154,31 @@ export default function CatchDetailPage() {
     if (!hasGps) return null;
     return (
       <div className="flex items-center gap-2">
+        {api?.lakeName && spotKey ? (
+          <Button
+            type="button"
+            size="sm"
+            variant={isSaved ? "default" : "outline"}
+            onClick={() => {
+              if (!api?.lakeName || !spotKey) return;
+              if (isSaved) {
+                removeSpot(spotKey);
+                toast({ title: "Removed", description: "Removed from My Spots." });
+              } else {
+                saveSpot({
+                  id: spotKey,
+                  name: String(api.lakeName),
+                  latitude: lat,
+                  longitude: lng,
+                });
+                toast({ title: "Saved", description: "Added to My Spots." });
+              }
+            }}
+          >
+            <Bookmark className="h-4 w-4 mr-1" />
+            {isSaved ? "Saved" : "Save spot"}
+          </Button>
+        ) : null}
         <Dialog open={isEditPinOpen} onOpenChange={setIsEditPinOpen}>
           <DialogTrigger asChild>
             <Button type="button" size="sm" variant="outline">
@@ -199,7 +235,20 @@ export default function CatchDetailPage() {
         </Button>
       </div>
     );
-  }, [hasGps, settings.mapEmbedProvider, updateSetting, saveSettings, isEditPinOpen, lat, lng, idNum, toast]);
+  }, [
+    hasGps,
+    api?.lakeName,
+    spotKey,
+    isSaved,
+    settings.mapEmbedProvider,
+    updateSetting,
+    saveSettings,
+    isEditPinOpen,
+    lat,
+    lng,
+    idNum,
+    toast,
+  ]);
 
   return (
     <div className="container max-w-xl mx-auto py-6 px-4">

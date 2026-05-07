@@ -24,6 +24,17 @@ export function isSpotSaved(id: string): boolean {
   return getMySpots().some((s) => s.id === id);
 }
 
+export function spotIdFromNameCoords(
+  name: string,
+  latitude: number,
+  longitude: number,
+): string {
+  const norm = String(name || "").trim().toLowerCase();
+  const latR = Math.round(Number(latitude) * 10_000) / 10_000;
+  const lngR = Math.round(Number(longitude) * 10_000) / 10_000;
+  return `spot:${encodeURIComponent(norm)}:${latR}:${lngR}`;
+}
+
 export function saveSpot(spot: Omit<MySpot, "createdAt">): MySpot {
   const spots = getMySpots();
   const existing = spots.find((s) => s.id === spot.id);

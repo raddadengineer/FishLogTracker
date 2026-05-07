@@ -12,11 +12,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import SpotChip from "@/components/maps/SpotChip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import CatchForm from "@/components/catches/CatchForm";
-import { Search, Fish, Map, Filter, Plus, Crosshair } from "lucide-react";
+import { Search, Fish, Map, Filter, Plus, Crosshair, Bookmark } from "lucide-react";
 import { formatDate, formatSize, formatWeight } from "@/lib/utils";
 import { getFishSpeciesById } from "@/lib/fishSpecies";
 import { useToast } from "@/hooks/use-toast";
-import { isSpotSaved, removeSpot, saveSpot } from "@/lib/mySpots";
+import { isSpotSaved, removeSpot, saveSpot, spotIdFromNameCoords } from "@/lib/mySpots";
 
 export default function MapPage() {
   const [_, navigate] = useWouterLocation();
@@ -580,6 +580,15 @@ export default function MapPage() {
             ) : displayedCatches.length > 0 ? (
               <div className="space-y-2">
                 {displayedCatches.map(catchItem => (
+                  (() => {
+                    const la = Number(catchItem.latitude);
+                    const ln = Number(catchItem.longitude);
+                    const lakeName = String(catchItem.lakeName || "").trim();
+                    const canSave = Boolean(lakeName) && Number.isFinite(la) && Number.isFinite(ln);
+                    const key = canSave ? spotIdFromNameCoords(lakeName, la, ln) : "";
+                    const saved = canSave ? isSpotSaved(key) : false;
+
+                    return (
                   <Card 
                     key={catchItem.id} 
                     className={`cursor-pointer bg-white shadow-sm border ${selectedCatch === catchItem.id ? 'border-primary' : 'border-gray-100'}`}
@@ -596,14 +605,41 @@ export default function MapPage() {
                           <p className="text-xs text-gray-500">{formatSize(catchItem.size)} • {catchItem.user?.username}</p>
                         </div>
                       </div>
-                      
-                      {catchItem.lakeName && (
-                        <Badge variant="outline" className="text-xs bg-primary/10 text-primary">
-                          {catchItem.lakeName}
-                        </Badge>
-                      )}
+
+                      <div className="flex items-center gap-2">
+                        {canSave ? (
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant={saved ? "default" : "outline"}
+                            className="h-8 w-8"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!canSave) return;
+                              if (saved) {
+                                removeSpot(key);
+                                toast({ title: "Removed", description: "Removed from My Spots." });
+                              } else {
+                                saveSpot({ id: key, name: lakeName, latitude: la, longitude: ln });
+                                toast({ title: "Saved", description: "Added to My Spots." });
+                              }
+                            }}
+                            aria-label={saved ? "Unsave spot" : "Save spot"}
+                          >
+                            <Bookmark className="h-4 w-4" />
+                          </Button>
+                        ) : null}
+
+                        {catchItem.lakeName && (
+                          <Badge variant="outline" className="text-xs bg-primary/10 text-primary">
+                            {catchItem.lakeName}
+                          </Badge>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
+                    );
+                  })()
                 ))}
               </div>
             ) : (

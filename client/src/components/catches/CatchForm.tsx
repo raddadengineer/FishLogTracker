@@ -12,6 +12,8 @@ import { queryClient } from "@/lib/queryClient";
 import { getWeatherIcon } from "@/lib/utils";
 import { Mic, MapPin, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { maybeUpdatePbs } from "@/lib/funStats";
 import {
   Form,
   FormControl,
@@ -53,6 +55,7 @@ interface CatchFormProps {
 
 export default function CatchForm({ catchToEdit, onSuccess }: CatchFormProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const { location, getLocation, isLoading: isLocationLoading } = useLocation();
   const { weatherData, fetchWeather, isLoading: isWeatherLoading } = useWeather();
   const [photos, setPhotos] = useState<File[]>([]);
@@ -345,6 +348,24 @@ export default function CatchForm({ catchToEdit, onSuccess }: CatchFormProps) {
             ? "Your catch has been updated!" 
             : "Your catch has been logged!",
         });
+
+        // Fun: PB celebration (only on new catches)
+        if (!catchToEdit) {
+          const pb = maybeUpdatePbs({
+            userId: (user as any)?.id || localStorage.getItem("currentUserId"),
+            species: data.species,
+            size: data.size,
+          });
+          if (pb?.isNewOverall || pb?.isNewSpecies) {
+            const parts: string[] = [];
+            if (pb.isNewOverall) parts.push("New overall PB!");
+            if (pb.isNewSpecies) parts.push(`New ${pb.speciesName || "species"} PB!`);
+            toast({
+              title: "🎉 Personal Best!",
+              description: parts.join(" "),
+            });
+          }
+        }
         
         // Call onSuccess callback if provided
         if (onSuccess) {
@@ -379,6 +400,22 @@ export default function CatchForm({ catchToEdit, onSuccess }: CatchFormProps) {
               ? `Saved offline with ${photos.length} photo${photos.length === 1 ? "" : "s"}. Will sync when you're online.`
               : "Your catch has been saved and will sync when you're online.",
         });
+
+        // Fun: PB celebration while offline too
+        const pb = maybeUpdatePbs({
+          userId: (user as any)?.id || localStorage.getItem("currentUserId"),
+          species: data.species,
+          size: data.size,
+        });
+        if (pb?.isNewOverall || pb?.isNewSpecies) {
+          const parts: string[] = [];
+          if (pb.isNewOverall) parts.push("New overall PB!");
+          if (pb.isNewSpecies) parts.push(`New ${pb.speciesName || "species"} PB!`);
+          toast({
+            title: "🎉 Personal Best!",
+            description: parts.join(" "),
+          });
+        }
       }
       
       // Reset form

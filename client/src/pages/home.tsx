@@ -12,6 +12,7 @@ import { Fish, MapPin, Map, LineChart, ActivitySquare } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import CatchForm from "@/components/catches/CatchForm";
 import { Button } from "@/components/ui/button";
+import { computeStreak } from "@/lib/funStats";
 
 export default function Home() {
   const { user, isAuthenticated } = useAuth();
@@ -63,6 +64,8 @@ export default function Home() {
     refetchOnWindowFocus: false,
     staleTime: 60000
   });
+
+  const streak = useMemo(() => computeStreak((userCatches as any[]) || []), [userCatches]);
   
   // Calculate changes dynamically based on actual catch data
   const [catchChange, setCatchChange] = useState(0);
@@ -238,6 +241,16 @@ export default function Home() {
           {isAuthenticated ? `Welcome, ${user?.username || 'Angler'}!` : 'Welcome to Fish Tracker!'}
         </h1>
         <p className="text-gray-500 text-sm">Track your catches and explore fishing spots</p>
+
+        {isAuthenticated && (
+          <div className="mt-3 flex gap-2">
+            <div className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm text-amber-900">
+              <span className="text-base">🔥</span>
+              <span className="font-medium">{streak.current} day streak</span>
+              <span className="text-amber-700/80">· best {streak.best}</span>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* Quick actions */}

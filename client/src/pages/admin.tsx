@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +25,8 @@ export default function AdminPage() {
   const [userRoleEdit, setUserRoleEdit] = useState<{id: string, role: string} | null>(null);
   const [selectedCatchId, setSelectedCatchId] = useState<number | null>(null);
   const [catchDetailsOpen, setCatchDetailsOpen] = useState(false);
+  const [showPendingOnly, setShowPendingOnly] = useState(true);
+  const [catchSearch, setCatchSearch] = useState("");
   const [exportStatus, setExportStatus] = useState<string>('idle');
   const [importStatus, setImportStatus] = useState<string>('idle');
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
@@ -85,6 +87,21 @@ export default function AdminPage() {
 
   // Count unverified catches
   const unverifiedCatches = allCatches.filter((c: any) => !c.isVerified);
+
+  const displayedAdminCatches = useMemo(() => {
+    const q = catchSearch.trim().toLowerCase();
+    let list = Array.isArray(allCatches) ? (allCatches as any[]) : [];
+    if (showPendingOnly) list = list.filter((c) => !c.isVerified);
+    if (q) {
+      list = list.filter((c) => {
+        const sp = String(getFishSpeciesById(c.species)?.name || c.species || "").toLowerCase();
+        const u = String(c.user?.username || "").toLowerCase();
+        const lake = String(c.lakeName || c.lake?.name || "").toLowerCase();
+        return sp.includes(q) || u.includes(q) || lake.includes(q) || String(c.id).includes(q);
+      });
+    }
+    return list;
+  }, [allCatches, catchSearch, showPendingOnly]);
   
   // Count moderators
   const moderators = users.filter((u: any) => u.role === 'moderator' || u.role === 'admin').length;
@@ -563,6 +580,27 @@ export default function AdminPage() {
                 <CardDescription>Verify and moderate catch submissions</CardDescription>
               </CardHeader>
               <CardContent>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={showPendingOnly ? "default" : "outline"}
+                      onClick={() => setShowPendingOnly((v) => !v)}
+                    >
+                      Pending only
+                    </Button>
+                    <div className="text-xs text-muted-foreground">
+                      Showing <span className="font-medium text-foreground">{displayedAdminCatches.length}</span>
+                    </div>
+                  </div>
+                  <Input
+                    value={catchSearch}
+                    onChange={(e) => setCatchSearch(e.target.value)}
+                    placeholder="Search by species, user, lake, or ID…"
+                    className="sm:ml-auto sm:max-w-[340px]"
+                  />
+                </div>
                 {isCatchesLoading ? (
                   <div className="flex justify-center items-center p-8">
                     <AlertTriangle className="h-6 w-6 animate-pulse" />
@@ -583,7 +621,7 @@ export default function AdminPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {allCatches.map((catchItem: any) => {
+                        {displayedAdminCatches.map((catchItem: any) => {
                           const speciesInfo = getFishSpeciesById(catchItem.species);
                           return (
                             <TableRow key={catchItem.id}>

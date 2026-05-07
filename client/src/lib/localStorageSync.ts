@@ -318,7 +318,13 @@ async function requestBackgroundSync(): Promise<void> {
 export function registerSyncEventListeners(): void {
   window.addEventListener('online', async () => {
     setSyncStatus('online');
-    await syncOfflineCatches();
+    const res = await syncOfflineCatches();
+    // Notify UI (toast/notification) in open tabs
+    try {
+      window.dispatchEvent(new CustomEvent("offline-sync-complete", { detail: res }));
+    } catch {
+      // ignore
+    }
   });
   
   window.addEventListener('offline', () => {
@@ -329,7 +335,12 @@ export function registerSyncEventListeners(): void {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('message', async (event) => {
       if (event?.data?.type === 'SYNC_OFFLINE_CATCHES') {
-        await syncOfflineCatches();
+        const res = await syncOfflineCatches();
+        try {
+          window.dispatchEvent(new CustomEvent("offline-sync-complete", { detail: res }));
+        } catch {
+          // ignore
+        }
       }
     });
   }

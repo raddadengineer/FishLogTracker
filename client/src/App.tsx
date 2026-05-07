@@ -24,6 +24,7 @@ import { useEffect } from "react";
 import { initSyncModule } from "@/lib/localStorageSync";
 import { SettingsProvider } from "@/hooks/useSettings";
 import { AuthLocalStorageSync } from "@/components/auth/AuthLocalStorageSync";
+import { useToast } from "@/hooks/use-toast";
 
 // Register service worker
 function registerServiceWorker() {
@@ -85,6 +86,8 @@ function Router() {
 }
 
 function App() {
+  const { toast } = useToast();
+
   useEffect(() => {
     // Initialize offline sync
     initSyncModule();
@@ -92,6 +95,21 @@ function App() {
     // Register service worker
     registerServiceWorker();
   }, []);
+
+  useEffect(() => {
+    const onDone = (e: any) => {
+      const d = e?.detail as { success?: boolean; synced?: number; failed?: number; message?: string } | undefined;
+      if (!d) return;
+      if ((d.synced ?? 0) === 0 && (d.failed ?? 0) === 0) return;
+      toast({
+        title: d.success ? "Offline sync complete" : "Offline sync issues",
+        description: d.message || "",
+        variant: d.success ? "default" : "destructive",
+      });
+    };
+    window.addEventListener("offline-sync-complete", onDone as any);
+    return () => window.removeEventListener("offline-sync-complete", onDone as any);
+  }, [toast]);
 
   return (
     <QueryClientProvider client={queryClient}>

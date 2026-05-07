@@ -24,6 +24,7 @@ export default function MapPage() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<string>("map");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [sortBy, setSortBy] = useState<"newest" | "biggest">("newest");
   const [mapCenter, setMapCenter] = useState<{ latitude: number; longitude: number; zoom?: number } | null>(null);
   const [isLogCatchOpen, setIsLogCatchOpen] = useState(false);
   const [catchPrefill, setCatchPrefill] = useState<{ lakeName?: string; latitude?: number; longitude?: number } | null>(
@@ -114,7 +115,7 @@ export default function MapPage() {
     const now = Date.now();
     const cutoff = now - 30 * 24 * 60 * 60 * 1000;
 
-    const filtered = catches.filter((catchItem: any) => {
+    let filtered = catches.filter((catchItem: any) => {
       const haystack = [
         String(catchItem.species ?? ""),
         String(catchItem.lakeName ?? ""),
@@ -153,9 +154,20 @@ export default function MapPage() {
 
       return true;
     });
+
+    filtered = filtered.slice().sort((a: any, b: any) => {
+      if (sortBy === "biggest") {
+        return Number(b.size || 0) - Number(a.size || 0);
+      }
+      // newest
+      return (
+        new Date(b.catchDate ?? b.createdAt ?? 0).getTime() -
+        new Date(a.catchDate ?? a.createdAt ?? 0).getTime()
+      );
+    });
     
     setDisplayedCatches(filtered);
-  }, [searchQuery, catches, filters]);
+  }, [searchQuery, catches, filters, sortBy]);
 
   // Handle marker click
   const handleMarkerClick = (id: number, type: 'catch' | 'lake') => {
@@ -391,9 +403,24 @@ export default function MapPage() {
 
           {/* Catches list */}
           <div className="space-y-2">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center gap-2">
               <h3 className="font-medium">Recent Catches</h3>
-              <Dialog>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant={sortBy === "newest" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSortBy("newest")}
+                >
+                  Newest
+                </Button>
+                <Button
+                  variant={sortBy === "biggest" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSortBy("biggest")}
+                >
+                  Biggest
+                </Button>
+                <Dialog>
                 <DialogTrigger asChild>
                   <Button variant="ghost" size="sm">
                     <Filter className="h-3 w-3 mr-1" />
@@ -468,7 +495,58 @@ export default function MapPage() {
                   </div>
                 </DialogContent>
               </Dialog>
+              </div>
             </div>
+
+            {(filters.species || filters.lake || filters.hasGps || filters.hasPhoto || filters.last30Days) && (
+              <div className="flex flex-wrap gap-2">
+                {filters.species ? (
+                  <button
+                    type="button"
+                    className="text-xs px-2 py-1 rounded-full border border-gray-200 bg-gray-50 hover:bg-gray-100"
+                    onClick={() => setFilters((p) => ({ ...p, species: "" }))}
+                  >
+                    Species: {filters.species} ✕
+                  </button>
+                ) : null}
+                {filters.lake ? (
+                  <button
+                    type="button"
+                    className="text-xs px-2 py-1 rounded-full border border-gray-200 bg-gray-50 hover:bg-gray-100"
+                    onClick={() => setFilters((p) => ({ ...p, lake: "" }))}
+                  >
+                    Lake: {filters.lake} ✕
+                  </button>
+                ) : null}
+                {filters.hasGps ? (
+                  <button
+                    type="button"
+                    className="text-xs px-2 py-1 rounded-full border border-gray-200 bg-gray-50 hover:bg-gray-100"
+                    onClick={() => setFilters((p) => ({ ...p, hasGps: false }))}
+                  >
+                    Has GPS ✕
+                  </button>
+                ) : null}
+                {filters.hasPhoto ? (
+                  <button
+                    type="button"
+                    className="text-xs px-2 py-1 rounded-full border border-gray-200 bg-gray-50 hover:bg-gray-100"
+                    onClick={() => setFilters((p) => ({ ...p, hasPhoto: false }))}
+                  >
+                    Has photo ✕
+                  </button>
+                ) : null}
+                {filters.last30Days ? (
+                  <button
+                    type="button"
+                    className="text-xs px-2 py-1 rounded-full border border-gray-200 bg-gray-50 hover:bg-gray-100"
+                    onClick={() => setFilters((p) => ({ ...p, last30Days: false }))}
+                  >
+                    Last 30 days ✕
+                  </button>
+                ) : null}
+              </div>
+            )}
             
             {isLoadingCatches ? (
               <div className="py-8 text-center">

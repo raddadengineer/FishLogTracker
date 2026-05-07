@@ -366,15 +366,18 @@ export default function CatchForm({ catchToEdit, onSuccess }: CatchFormProps) {
           ...data,
           catchDate: new Date().toISOString(),
           weatherData: weatherData || undefined,
-          // We can't store File objects in localStorage, so we'll skip photos for now
-          // In a real implementation, we would store them in IndexedDB
+          // Photos are stored in IndexedDB and linked to the offline catch id.
+          photos: photos.map((p) => p.slice(0, p.size, p.type)),
         };
         
         await saveOfflineCatch(catchData);
         
         toast({
           title: "Saved Offline",
-          description: "Your catch has been saved and will sync when you're online.",
+          description:
+            photos.length > 0
+              ? `Saved offline with ${photos.length} photo${photos.length === 1 ? "" : "s"}. Will sync when you're online.`
+              : "Your catch has been saved and will sync when you're online.",
         });
       }
       

@@ -1,5 +1,6 @@
 import { generateId, safeJsonParse } from "./utils";
 import { clientAuthHeaders } from "./queryClient";
+import { deleteCatchPhotos, getCatchPhotos, putCatchPhotos } from "./offlinePhotoStore";
 
 // Type definitions
 export interface OfflineCatch {
@@ -15,7 +16,7 @@ export interface OfflineCatch {
   depth?: number;
   lure?: string;
   comments?: string;
-  photosBlob?: Blob[];
+  photosCount?: number;
   catchDate: string;
   createdAt: string;
   synced: boolean;
@@ -33,12 +34,21 @@ export function getOfflineCatches(): OfflineCatch[] {
 }
 
 // Save a catch to offline storage
-export async function saveOfflineCatch(catchData: Omit<OfflineCatch, 'id' | 'synced' | 'createdAt'>): Promise<OfflineCatch> {
+export async function saveOfflineCatch(
+  catchData: Omit<OfflineCatch, "id" | "synced" | "createdAt"> & { photos?: Blob[] },
+): Promise<OfflineCatch> {
   const catches = getOfflineCatches();
   
+  const id = generateId();
+
+  if (catchData.photos && catchData.photos.length > 0) {
+    await putCatchPhotos(id, catchData.photos);
+  }
+
   const newCatch: OfflineCatch = {
     ...catchData,
-    id: generateId(),
+    id,
+    photosCount: catchData.photos?.length || 0,
     synced: false,
     createdAt: new Date().toISOString(),
   };
@@ -78,6 +88,8 @@ export function deleteOfflineCatch(id: string): boolean {
   if (filtered.length === catches.length) return false;
   
   localStorage.setItem(OFFLINE_CATCHES_KEY, JSON.stringify(filtered));
+  // Best-effort cleanup of photo blobs
+  deleteCatchPhotos(id).catch(() => {});
   return true;
 }
 
@@ -141,14 +153,17 @@ export async function syncOfflineCatches(): Promise<{
     // Process each catch
     for (const offlineCatch of catches) {
       try {
-        const response = await fetch('/api/catches', {
-          method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-            ...clientAuthHeaders(),
-          },
-          body: JSON.stringify({
+        const photos = offlineCatch.photosCount ? await getCatchPhotos(offlineCatch.id) : [];
+
+        let body: BodyInit;
+        let headers: Record<string, string> = { ...clientAuthHeaders() };
+
+        if (photos.length > 0) {
+          const form = new FormData();
+          for (const p of photos) {
+            form.append("photos", p, `photo-${offlineCatch.id}.jpg`);
+          }
+          const fields: Record<string, any> = {
             species: offlineCatch.species,
             size: offlineCatch.size,
             weight: offlineCatch.weight,
@@ -161,12 +176,43 @@ export async function syncOfflineCatches(): Promise<{
             lure: offlineCatch.lure,
             comments: offlineCatch.comments,
             catchDate: offlineCatch.catchDate,
-            // Photos are handled separately in a real implementation
-          }),
+          };
+          Object.entries(fields).forEach(([k, v]) => {
+            if (v === undefined || v === null || v === "") return;
+            form.append(k, String(v));
+          });
+          body = form;
+          // Let browser set multipart boundary
+        } else {
+          headers["Content-Type"] = "application/json";
+          body = JSON.stringify({
+            species: offlineCatch.species,
+            size: offlineCatch.size,
+            weight: offlineCatch.weight,
+            lakeName: offlineCatch.lakeName,
+            lakeId: offlineCatch.lakeId,
+            latitude: offlineCatch.latitude,
+            longitude: offlineCatch.longitude,
+            temperature: offlineCatch.temperature,
+            depth: offlineCatch.depth,
+            lure: offlineCatch.lure,
+            comments: offlineCatch.comments,
+            catchDate: offlineCatch.catchDate,
+          });
+        }
+
+        const response = await fetch("/api/catches", {
+          method: "POST",
+          credentials: "include",
+          headers,
+          body,
         });
         
         if (response.ok) {
           markCatchAsSynced(offlineCatch.id);
+          if (photos.length > 0) {
+            await deleteCatchPhotos(offlineCatch.id);
+          }
           syncedCount++;
         } else {
           failedCount++;

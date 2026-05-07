@@ -143,6 +143,12 @@ export default function OfflineCatchesPage() {
                       {c.lakeName ? `Lake: ${c.lakeName}` : "Lake: (not set)"}
                       {" • "}
                       Saved: {new Date(c.createdAt).toLocaleString()}
+                        {c.photosCount ? (
+                          <>
+                            {" • "}
+                            Photos: {c.photosCount}
+                          </>
+                        ) : null}
                     </div>
                     {c.comments ? (
                       <div className="text-sm text-gray-700 mt-2 line-clamp-2">{c.comments}</div>

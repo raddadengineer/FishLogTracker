@@ -1,5 +1,5 @@
 import { Link, useParams } from "wouter";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Loader2, MapPin, ExternalLink, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";

@@ -174,19 +174,21 @@ export default function SpotDetailPage() {
             <div className="text-sm text-gray-600">No catches recorded at this spot yet.</div>
           ) : (
             stats.recent.map((c: any) => (
-              <Link key={c.id} href={`/catches/${c.id}`}>
-                <a className="block rounded-lg border border-gray-100 p-3 hover:bg-gray-50">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium truncate">
-                        {getFishSpeciesById(c.species)?.name || c.species} · {formatSize(Number(c.size))}
-                      </div>
-                      <div className="text-xs text-gray-600">
-                        {new Date(c.catchDate ?? c.createdAt ?? 0).toLocaleString()}
-                      </div>
+              <Link
+                key={c.id}
+                href={`/catches/${c.id}`}
+                className="block rounded-lg border border-gray-100 p-3 hover:bg-gray-50"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium truncate">
+                      {getFishSpeciesById(c.species)?.name || c.species} · {formatSize(Number(c.size))}
+                    </div>
+                    <div className="text-xs text-gray-600">
+                      {new Date(c.catchDate ?? c.createdAt ?? 0).toLocaleString()}
                     </div>
                   </div>
-                </a>
+                </div>
               </Link>
             ))
           )}

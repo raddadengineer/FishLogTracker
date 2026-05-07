@@ -6,6 +6,7 @@ import { Bell, Menu, X } from "lucide-react";
 import { getSyncStatus } from "@/lib/localStorageSync";
 import { useAuth } from "@/hooks/useAuth";
 import { getOfflineCatches } from "@/lib/localStorageSync";
+import { endTrip, getActiveTrip, startTrip } from "@/lib/trips";
 import {
   Sheet,
   SheetClose,
@@ -23,6 +24,7 @@ export default function Header() {
   const [pendingOfflineCount, setPendingOfflineCount] = useState<number>(() =>
     getOfflineCatches().filter((c) => !c.synced).length,
   );
+  const [activeTrip, setActiveTrip] = useState(() => getActiveTrip());
 
   // Update sync status when online/offline status changes
   useEffect(() => {
@@ -47,6 +49,7 @@ export default function Header() {
   useEffect(() => {
     const refresh = () => {
       setPendingOfflineCount(getOfflineCatches().filter((c) => !c.synced).length);
+      setActiveTrip(getActiveTrip());
     };
     window.addEventListener("storage", refresh);
     const id = window.setInterval(refresh, 5000);
@@ -67,6 +70,21 @@ export default function Header() {
         </div>
         
         <div className="flex items-center space-x-3">
+          {/* Trip mode */}
+          <Button
+            variant={activeTrip ? "default" : "outline"}
+            size="sm"
+            onClick={() => {
+              if (activeTrip) {
+                endTrip();
+              } else {
+                startTrip();
+              }
+              setActiveTrip(getActiveTrip());
+            }}
+          >
+            {activeTrip ? "End Trip" : "Start Trip"}
+          </Button>
           {/* Sync Status Indicator */}
           <div className="flex items-center">
             {syncStatus === 'online' && (

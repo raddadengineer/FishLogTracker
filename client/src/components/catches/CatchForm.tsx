@@ -6,7 +6,7 @@ import { z } from "zod";
 import { useLocation } from "@/hooks/useLocation";
 import { useWeather } from "@/hooks/useWeather";
 import { getFishSpeciesOptions } from "@/lib/fishSpecies";
-import { saveOfflineCatch } from "@/lib/localStorageSync";
+import { getOfflineCatches, saveOfflineCatch } from "@/lib/localStorageSync";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { getWeatherIcon } from "@/lib/utils";
@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { maybeUpdatePbs } from "@/lib/funStats";
 import { touchSpotLastVisitedByName } from "@/lib/mySpots";
+import { addTripCatch, addTripOfflineCatch } from "@/lib/trips";
 import {
   Form,
   FormControl,
@@ -413,6 +414,13 @@ export default function CatchForm({ catchToEdit, onSuccess, prefill }: CatchForm
           console.error("Error response:", errorData);
           throw new Error(`Request failed with status ${response.status}`);
         }
+
+        // Trip mode: attach this catch to the active trip (new catches only)
+        if (!catchToEdit) {
+          const created = await response.json().catch(() => null);
+          const createdId = created && typeof created === "object" ? Number((created as any).id) : NaN;
+          if (Number.isFinite(createdId)) addTripCatch(createdId);
+        }
         
         // Invalidate catches query to refetch the data
         queryClient.invalidateQueries({ queryKey: ['/api/catches'] });
@@ -471,6 +479,13 @@ export default function CatchForm({ catchToEdit, onSuccess, prefill }: CatchForm
         };
         
         await saveOfflineCatch(catchData);
+        // Trip mode: attach offline catch to active trip
+        try {
+          const newest = getOfflineCatches().slice(-1)[0];
+          if (newest?.id) addTripOfflineCatch(newest.id);
+        } catch {
+          // ignore
+        }
         
         toast({
           title: "Saved Offline",

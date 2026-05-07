@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { addManySpots, getMySpots, removeSpot, updateSpot, type MySpot } from "@/lib/mySpots";
+import { addManySpots, dedupeMySpots, getMySpots, removeSpot, updateSpot, type MySpot } from "@/lib/mySpots";
 import { Map as MapIcon, Trash2, PlusCircle, Pencil } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -148,6 +148,23 @@ export default function MySpotsPage() {
           <p className="text-sm text-gray-600">Saved lakes/spots on this device.</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            disabled={spots.length < 2}
+            onClick={() => {
+              const res = dedupeMySpots(100);
+              setSpots(getMySpots());
+              toast({
+                title: "Cleaned up",
+                description:
+                  res.removed > 0
+                    ? `Merged and removed ${res.removed} duplicate spot${res.removed === 1 ? "" : "s"}.`
+                    : "No duplicates found.",
+              });
+            }}
+          >
+            Clean up
+          </Button>
           <Button
             variant="outline"
             disabled={isImporting || importCandidates.length === 0}

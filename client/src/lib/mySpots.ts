@@ -89,3 +89,70 @@ export function touchSpotLastVisitedByName(lakeName?: string | null) {
   if (changed) setMySpots(next);
 }
 
+function metersBetween(a: { latitude: number; longitude: number }, b: { latitude: number; longitude: number }) {
+  const latM = 111_320;
+  const avgLatRad = ((a.latitude + b.latitude) / 2) * (Math.PI / 180);
+  const lngM = Math.cos(avgLatRad) * 111_320;
+  const dLat = (a.latitude - b.latitude) * latM;
+  const dLng = (a.longitude - b.longitude) * lngM;
+  return Math.hypot(dLat, dLng);
+}
+
+export function dedupeMySpots(maxMeters: number = 100): { removed: number; kept: number } {
+  const spots = getMySpots();
+  if (spots.length <= 1) return { removed: 0, kept: spots.length };
+
+  const norm = (s: string) => String(s || "").trim().toLowerCase();
+
+  // Prefer keeping the spot with notes, then most recently visited, then newest.
+  const score = (s: MySpot) => {
+    const notesScore = s.notes && s.notes.trim() ? 10_000_000_000 : 0;
+    const visitedScore = s.lastVisitedAt ? new Date(s.lastVisitedAt).getTime() : 0;
+    const createdScore = s.createdAt ? new Date(s.createdAt).getTime() : 0;
+    return notesScore + visitedScore + createdScore;
+  };
+
+  const remaining: MySpot[] = [];
+
+  // Simple O(n^2) grouping; lists are small.
+  for (const s of spots) {
+    const name = norm(s.name);
+    let mergedInto: MySpot | null = null;
+
+    for (const k of remaining) {
+      if (norm(k.name) !== name) continue;
+      const d = metersBetween({ latitude: s.latitude, longitude: s.longitude }, { latitude: k.latitude, longitude: k.longitude });
+      if (d <= maxMeters) {
+        mergedInto = k;
+        break;
+      }
+    }
+
+    if (!mergedInto) {
+      remaining.push(s);
+      continue;
+    }
+
+    // Merge metadata; keep the "best" record as base, but don't lose notes/lastVisited.
+    const keep = score(mergedInto) >= score(s) ? mergedInto : s;
+    const drop = keep === mergedInto ? s : mergedInto;
+
+    keep.notes = keep.notes || drop.notes;
+    if (!keep.lastVisitedAt || (drop.lastVisitedAt && new Date(drop.lastVisitedAt) > new Date(keep.lastVisitedAt))) {
+      keep.lastVisitedAt = drop.lastVisitedAt;
+    }
+    if (new Date(drop.createdAt) < new Date(keep.createdAt)) {
+      keep.createdAt = drop.createdAt;
+    }
+
+    if (keep === s) {
+      // Replace existing kept record in remaining with s
+      const idx = remaining.findIndex((x) => x.id === mergedInto?.id);
+      if (idx >= 0) remaining[idx] = keep;
+    }
+  }
+
+  if (remaining.length !== spots.length) setMySpots(remaining);
+  return { removed: spots.length - remaining.length, kept: remaining.length };
+}
+

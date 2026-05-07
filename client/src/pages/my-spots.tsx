@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { getMySpots, removeSpot, updateSpot, type MySpot } from "@/lib/mySpots";
+import { addManySpots, getMySpots, removeSpot, updateSpot, type MySpot } from "@/lib/mySpots";
 import { Map as MapIcon, Trash2, PlusCircle, Pencil } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,6 +16,7 @@ export default function MySpotsPage() {
   const [spots, setSpots] = useState<MySpot[]>(() => getMySpots());
   const [noteDraft, setNoteDraft] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
 
   const { data: catches = [] } = useQuery({
     queryKey: ["/api/catches"],
@@ -83,6 +84,62 @@ export default function MySpotsPage() {
     return byName;
   }, [catches, spots]);
 
+  const importCandidates = useMemo(() => {
+    const list = Array.isArray(catches) ? (catches as any[]) : [];
+    const existing = spots;
+
+    const normName = (s: string) => s.trim().toLowerCase();
+    const metersBetween = (a: { latitude: number; longitude: number }, b: { latitude: number; longitude: number }) => {
+      // Good enough for small distances; avoids pulling in a geo lib.
+      const latM = 111_320;
+      const avgLatRad = ((a.latitude + b.latitude) / 2) * (Math.PI / 180);
+      const lngM = Math.cos(avgLatRad) * 111_320;
+      const dLat = (a.latitude - b.latitude) * latM;
+      const dLng = (a.longitude - b.longitude) * lngM;
+      return Math.hypot(dLat, dLng);
+    };
+
+    const isNearExisting = (name: string, latitude: number, longitude: number) => {
+      const target = { latitude, longitude };
+      const nn = normName(name);
+      for (const s of existing) {
+        if (normName(s.name) !== nn) continue;
+        if (metersBetween(target, { latitude: s.latitude, longitude: s.longitude }) <= 100) return true;
+      }
+      return false;
+    };
+
+    const pick: Array<{ id: string; name: string; latitude: number; longitude: number }> = [];
+    const seen = new Set<string>();
+
+    for (const c of list) {
+      const name = String(c.lakeName || "").trim();
+      const latitude = Number(c.latitude);
+      const longitude = Number(c.longitude);
+      if (!name) continue;
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) continue;
+
+      // Round to reduce duplicate spots from noisy GPS.
+      const latR = Math.round(latitude * 10_000) / 10_000;
+      const lngR = Math.round(longitude * 10_000) / 10_000;
+      const key = `${normName(name)}|${latR}|${lngR}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      if (isNearExisting(name, latR, lngR)) continue;
+
+      pick.push({
+        id: `catchlake:${encodeURIComponent(normName(name))}:${latR}:${lngR}`,
+        name,
+        latitude: latR,
+        longitude: lngR,
+      });
+    }
+
+    // Keep the UI tidy; we can add paging later if needed.
+    return pick.slice(0, 50);
+  }, [catches, spots]);
+
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
@@ -90,12 +147,36 @@ export default function MySpotsPage() {
           <h1 className="text-lg font-semibold">My Spots</h1>
           <p className="text-sm text-gray-600">Saved lakes/spots on this device.</p>
         </div>
-        <Button asChild variant="outline">
-          <Link href="/map">
-            <MapIcon className="h-4 w-4 mr-1" />
-            Open map
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            disabled={isImporting || importCandidates.length === 0}
+            onClick={() => {
+              setIsImporting(true);
+              try {
+                const res = addManySpots(importCandidates);
+                setSpots(getMySpots());
+                toast({
+                  title: "Imported",
+                  description:
+                    res.added > 0
+                      ? `Added ${res.added} spot${res.added === 1 ? "" : "s"} from catches.`
+                      : "No new spots found to import.",
+                });
+              } finally {
+                setIsImporting(false);
+              }
+            }}
+          >
+            Import ({importCandidates.length})
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/map">
+              <MapIcon className="h-4 w-4 mr-1" />
+              Open map
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {spots.length === 0 ? (

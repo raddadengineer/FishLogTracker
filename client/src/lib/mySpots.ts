@@ -33,6 +33,23 @@ export function saveSpot(spot: Omit<MySpot, "createdAt">): MySpot {
   return next;
 }
 
+export function addManySpots(spotsToAdd: Array<Omit<MySpot, "createdAt">>): { added: number; total: number } {
+  const current = getMySpots();
+  const existingIds = new Set(current.map((s) => s.id));
+  const now = new Date().toISOString();
+
+  const additions: MySpot[] = [];
+  for (const spot of spotsToAdd) {
+    if (!spot?.id) continue;
+    if (existingIds.has(spot.id)) continue;
+    existingIds.add(spot.id);
+    additions.push({ ...spot, createdAt: now });
+  }
+
+  if (additions.length > 0) setMySpots([...current, ...additions]);
+  return { added: additions.length, total: current.length + additions.length };
+}
+
 export function removeSpot(id: string) {
   const spots = getMySpots();
   const next = spots.filter((s) => s.id !== id);

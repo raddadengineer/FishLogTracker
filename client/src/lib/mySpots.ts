@@ -6,6 +6,8 @@ export type MySpot = {
   latitude: number;
   longitude: number;
   createdAt: string;
+  notes?: string;
+  lastVisitedAt?: string;
 };
 
 const KEY = "fishtracker_my_spots";
@@ -35,5 +37,27 @@ export function removeSpot(id: string) {
   const spots = getMySpots();
   const next = spots.filter((s) => s.id !== id);
   setMySpots(next);
+}
+
+export function updateSpot(id: string, patch: Partial<MySpot>) {
+  const spots = getMySpots();
+  const next = spots.map((s) => (s.id === id ? { ...s, ...patch } : s));
+  setMySpots(next);
+}
+
+export function touchSpotLastVisitedByName(lakeName?: string | null) {
+  const name = lakeName ? String(lakeName).trim().toLowerCase() : "";
+  if (!name) return;
+  const now = new Date().toISOString();
+  const spots = getMySpots();
+  let changed = false;
+  const next = spots.map((s) => {
+    if (String(s.name).trim().toLowerCase() === name) {
+      changed = true;
+      return { ...s, lastVisitedAt: now };
+    }
+    return s;
+  });
+  if (changed) setMySpots(next);
 }
 

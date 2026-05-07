@@ -25,6 +25,10 @@ export default function MapPage() {
   const [activeTab, setActiveTab] = useState<string>("map");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [mapCenter, setMapCenter] = useState<{ latitude: number; longitude: number; zoom?: number } | null>(null);
+  const [isLogCatchOpen, setIsLogCatchOpen] = useState(false);
+  const [catchPrefill, setCatchPrefill] = useState<{ lakeName?: string; latitude?: number; longitude?: number } | null>(
+    null,
+  );
   const [filters, setFilters] = useState<{
     species: string;
     lake: string;
@@ -60,6 +64,21 @@ export default function MapPage() {
       setActiveTab("map");
     }
   }, [initialLat, initialLng]);
+
+  useEffect(() => {
+    const qp = new URLSearchParams(window.location.search);
+    if (qp.get("logCatch") === "1") {
+      const lakeName = qp.get("lakeName") || undefined;
+      const lat = qp.get("lat") ? Number(qp.get("lat")) : undefined;
+      const lng = qp.get("lng") ? Number(qp.get("lng")) : undefined;
+      setCatchPrefill({
+        lakeName,
+        latitude: Number.isFinite(lat) ? lat : undefined,
+        longitude: Number.isFinite(lng) ? lng : undefined,
+      });
+      setIsLogCatchOpen(true);
+    }
+  }, []);
 
   // Fetch all catches
   const { data: catches = [], isLoading: isLoadingCatches } = useQuery({
@@ -162,7 +181,7 @@ export default function MapPage() {
     <>
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-xl font-semibold">Explore Fishing Spots</h1>
-        <Dialog>
+        <Dialog open={isLogCatchOpen} onOpenChange={setIsLogCatchOpen}>
           <DialogTrigger asChild>
             <Button size="sm">
               <Plus className="h-4 w-4 mr-1" />
@@ -173,7 +192,7 @@ export default function MapPage() {
             <DialogHeader>
               <DialogTitle>Log a New Catch</DialogTitle>
             </DialogHeader>
-            <CatchForm />
+            <CatchForm prefill={catchPrefill ?? undefined} onSuccess={() => setIsLogCatchOpen(false)} />
           </DialogContent>
         </Dialog>
       </div>

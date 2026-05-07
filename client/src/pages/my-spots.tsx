@@ -1,14 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { getMySpots, removeSpot, type MySpot } from "@/lib/mySpots";
-import { Map, Trash2 } from "lucide-react";
+import { getMySpots, removeSpot, updateSpot, type MySpot } from "@/lib/mySpots";
+import { Map, Trash2, PlusCircle, Pencil } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function MySpotsPage() {
   const { toast } = useToast();
   const [spots, setSpots] = useState<MySpot[]>(() => getMySpots());
+  const [noteDraft, setNoteDraft] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     const refresh = () => setSpots(getMySpots());
@@ -19,6 +23,8 @@ export default function MySpotsPage() {
       window.clearInterval(id);
     };
   }, []);
+
+  const editingSpot = useMemo(() => spots.find((s) => s.id === editingId) || null, [spots, editingId]);
 
   return (
     <div className="space-y-4">
@@ -57,6 +63,16 @@ export default function MySpotsPage() {
                     <div className="text-[11px] text-gray-500 mt-1">
                       Saved {new Date(s.createdAt).toLocaleString()}
                     </div>
+                    {s.lastVisitedAt ? (
+                      <div className="text-[11px] text-emerald-700 mt-1">
+                        Last visited {new Date(s.lastVisitedAt).toLocaleString()}
+                      </div>
+                    ) : null}
+                    {s.notes ? (
+                      <div className="text-[11px] text-gray-600 mt-1 line-clamp-2">
+                        Notes: {s.notes}
+                      </div>
+                    ) : null}
                   </div>
 
                   <div className="flex items-center gap-2">
@@ -66,6 +82,70 @@ export default function MySpotsPage() {
                         View
                       </Link>
                     </Button>
+                    <Button asChild size="sm">
+                      <Link
+                        href={`/map?logCatch=1&lakeName=${encodeURIComponent(s.name)}&lat=${encodeURIComponent(
+                          String(s.latitude),
+                        )}&lng=${encodeURIComponent(String(s.longitude))}`}
+                      >
+                        <PlusCircle className="h-4 w-4 mr-1" />
+                        Log here
+                      </Link>
+                    </Button>
+
+                    <Dialog
+                      open={editingId === s.id}
+                      onOpenChange={(open) => {
+                        if (open) {
+                          setEditingId(s.id);
+                          setNoteDraft(s.notes || "");
+                        } else {
+                          setEditingId(null);
+                        }
+                      }}
+                    >
+                      <DialogTrigger asChild>
+                        <Button size="sm" variant="outline">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[520px]">
+                        <DialogHeader>
+                          <DialogTitle>Edit notes</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-3">
+                          <div className="text-sm font-medium">{s.name}</div>
+                          <Textarea
+                            value={noteDraft}
+                            onChange={(e) => setNoteDraft(e.target.value)}
+                            placeholder="Add tips (best time, lure, access, etc.)"
+                            className="min-h-[120px]"
+                          />
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => {
+                                setEditingId(null);
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              type="button"
+                              onClick={() => {
+                                updateSpot(s.id, { notes: noteDraft.trim() || undefined });
+                                setSpots(getMySpots());
+                                toast({ title: "Saved", description: "Spot notes updated." });
+                                setEditingId(null);
+                              }}
+                            >
+                              Save
+                            </Button>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                     <Button
                       size="sm"
                       variant="outline"

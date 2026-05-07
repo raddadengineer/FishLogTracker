@@ -14,6 +14,7 @@ import { Mic, MapPin, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { maybeUpdatePbs } from "@/lib/funStats";
+import { touchSpotLastVisitedByName } from "@/lib/mySpots";
 import {
   Form,
   FormControl,
@@ -51,9 +52,10 @@ type FormValues = z.infer<typeof formSchema>;
 interface CatchFormProps {
   catchToEdit?: any; // The catch data to edit, if provided
   onSuccess?: () => void; // Optional callback for when form submission succeeds
+  prefill?: Partial<FormValues>; // Optional initial values (e.g. "Log catch here" from My Spots)
 }
 
-export default function CatchForm({ catchToEdit, onSuccess }: CatchFormProps) {
+export default function CatchForm({ catchToEdit, onSuccess, prefill }: CatchFormProps) {
   const { toast } = useToast();
   const { user } = useAuth();
   const { location, getLocation, isLoading: isLocationLoading } = useLocation();
@@ -92,6 +94,16 @@ export default function CatchForm({ catchToEdit, onSuccess }: CatchFormProps) {
       longitude: location?.longitude,
     },
   });
+
+  useEffect(() => {
+    if (!prefill) return;
+    Object.entries(prefill).forEach(([k, v]) => {
+      if (v === undefined) return;
+      // @ts-expect-error dynamic set
+      form.setValue(k, v);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Improved direct access to geolocation
   const getMyLocation = () => {
@@ -349,6 +361,8 @@ export default function CatchForm({ catchToEdit, onSuccess }: CatchFormProps) {
             : "Your catch has been logged!",
         });
 
+        touchSpotLastVisitedByName(data.lakeName);
+
         // Fun: PB celebration (only on new catches)
         if (!catchToEdit) {
           const pb = maybeUpdatePbs({
@@ -400,6 +414,8 @@ export default function CatchForm({ catchToEdit, onSuccess }: CatchFormProps) {
               ? `Saved offline with ${photos.length} photo${photos.length === 1 ? "" : "s"}. Will sync when you're online.`
               : "Your catch has been saved and will sync when you're online.",
         });
+
+        touchSpotLastVisitedByName(data.lakeName);
 
         // Fun: PB celebration while offline too
         const pb = maybeUpdatePbs({

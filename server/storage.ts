@@ -5,12 +5,15 @@ import {
   likes,
   comments,
   follows,
+  mySpots,
   type User,
   type UpsertUser,
   type Catch,
   type InsertCatch,
   type Lake,
   type InsertLake,
+  type MySpot,
+  type InsertMySpot,
   type Comment,
   type InsertComment,
   type Like,
@@ -78,6 +81,10 @@ export interface IStorage {
   getLakesBreakdown(userId: string): Promise<{ lake: string; count: number }[]>;
   getGlobalLeaderboard(criteria: 'catches' | 'species' | 'size', limit?: number): Promise<any[]>;
   getLakeLeaderboard(lakeId: number, criteria: 'catches' | 'species' | 'size', limit?: number): Promise<any[]>;
+
+  // My Spots (cloud-synced)
+  getMySpots(userId: string): Promise<MySpot[]>;
+  replaceMySpots(userId: string, spots: Array<Omit<InsertMySpot, "userId">>): Promise<MySpot[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -658,6 +665,23 @@ export class DatabaseStorage implements IStorage {
       `);
       return leaderboard.rows || [];
     }
+  }
+
+  async getMySpots(userId: string): Promise<MySpot[]> {
+    return await db.select().from(mySpots).where(eq(mySpots.userId, userId)).orderBy(desc(mySpots.updatedAt));
+  }
+
+  async replaceMySpots(userId: string, spots: Array<Omit<InsertMySpot, "userId">>): Promise<MySpot[]> {
+    // Replace-mode sync keeps semantics simple for multi-device bootstrap.
+    await db.delete(mySpots).where(eq(mySpots.userId, userId));
+    if (spots.length === 0) return [];
+    const now = new Date();
+    const rows = spots.map((s) => ({
+      ...s,
+      userId,
+      updatedAt: now,
+    }));
+    return await db.insert(mySpots).values(rows).returning();
   }
 }
 

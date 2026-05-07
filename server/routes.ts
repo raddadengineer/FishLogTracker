@@ -205,6 +205,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/auth/reset-password", resetPasswordByEmail);
+
+  // My Spots (cloud sync)
+  app.get("/api/my-spots", requireSessionAuth, async (req, res) => {
+    try {
+      const userId = req.headers["user-id"] as string | undefined;
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+      const spots = await storage.getMySpots(userId);
+      res.json(spots);
+    } catch (e) {
+      console.error("Error fetching my spots:", e);
+      res.status(500).json({ message: "Failed to fetch spots" });
+    }
+  });
+
+  app.post("/api/my-spots/sync", requireSessionAuth, async (req, res) => {
+    try {
+      const userId = req.headers["user-id"] as string | undefined;
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+      const body = req.body as { spots?: any[] };
+      const spots = Array.isArray(body?.spots) ? body.spots : [];
+      const normalized = spots
+        .map((s) => ({
+          name: String(s?.name ?? "").trim(),
+          latitude: Number(s?.latitude),
+          longitude: Number(s?.longitude),
+          notes: s?.notes != null && String(s.notes).trim() ? String(s.notes) : undefined,
+          lastVisitedAt: s?.lastVisitedAt ? new Date(String(s.lastVisitedAt)) : undefined,
+          createdAt: s?.createdAt ? new Date(String(s.createdAt)) : undefined,
+        }))
+        .filter((s) => s.name && Number.isFinite(s.latitude) && Number.isFinite(s.longitude));
+
+      const saved = await storage.replaceMySpots(userId, normalized as any);
+      res.json({ ok: true, count: saved.length });
+    } catch (e) {
+      console.error("Error syncing my spots:", e);
+      res.status(500).json({ message: "Failed to sync spots" });
+    }
+  });
   
   // Add profile update endpoint
   app.patch('/api/user/profile', requireSessionAuth, async (req, res) => {

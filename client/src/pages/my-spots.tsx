@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Textarea } from "@/components/ui/textarea";
 import { getFishSpeciesById } from "@/lib/fishSpecies";
 import { formatSize } from "@/lib/utils";
+import { pushMySpotsToCloud } from "@/lib/mySpotsCloud";
 
 export default function MySpotsPage() {
   const { toast } = useToast();
@@ -17,6 +18,7 @@ export default function MySpotsPage() {
   const [noteDraft, setNoteDraft] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [isCloudSyncing, setIsCloudSyncing] = useState(false);
 
   const { data: catches = [] } = useQuery({
     queryKey: ["/api/catches"],
@@ -148,6 +150,29 @@ export default function MySpotsPage() {
           <p className="text-sm text-gray-600">Saved lakes/spots on this device.</p>
         </div>
         <div className="flex items-center gap-2">
+          {localStorage.getItem("currentUserId") ? (
+            <Button
+              variant="outline"
+              disabled={isCloudSyncing}
+              onClick={async () => {
+                setIsCloudSyncing(true);
+                try {
+                  const res = await pushMySpotsToCloud(getMySpots());
+                  toast({ title: "Synced", description: `Saved ${res.count} spot(s) to your account.` });
+                } catch (e) {
+                  toast({
+                    title: "Sync failed",
+                    description: e instanceof Error ? e.message : "Could not sync spots",
+                    variant: "destructive",
+                  });
+                } finally {
+                  setIsCloudSyncing(false);
+                }
+              }}
+            >
+              {isCloudSyncing ? "Syncing…" : "Sync"}
+            </Button>
+          ) : null}
           <Button
             variant="outline"
             disabled={spots.length < 2}

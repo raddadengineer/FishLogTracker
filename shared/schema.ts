@@ -94,6 +94,28 @@ export const lakesRelations = relations(lakes, ({ many }) => ({
   catches: many(catches),
 }));
 
+// My Spots (saved by a user, synced across devices)
+export const mySpots = pgTable("my_spots", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  name: varchar("name").notNull(),
+  latitude: doublePrecision("latitude").notNull(),
+  longitude: doublePrecision("longitude").notNull(),
+  notes: text("notes"),
+  lastVisitedAt: timestamp("last_visited_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const mySpotsRelations = relations(mySpots, ({ one }) => ({
+  user: one(users, {
+    fields: [mySpots.userId],
+    references: [users.id],
+  }),
+}));
+
 // Fish catches table
 export const catches = pgTable("catches", {
   id: serial("id").primaryKey(),
@@ -223,6 +245,12 @@ export const insertLakeSchema = createInsertSchema(lakes).omit({
   updatedAt: true,
 });
 
+export const insertMySpotSchema = createInsertSchema(mySpots).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Type exports
 export type UpsertUser = z.infer<typeof upsertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -235,6 +263,9 @@ export type Comment = typeof comments.$inferSelect;
 
 export type InsertLake = z.infer<typeof insertLakeSchema>;
 export type Lake = typeof lakes.$inferSelect;
+
+export type InsertMySpot = z.infer<typeof insertMySpotSchema>;
+export type MySpot = typeof mySpots.$inferSelect;
 
 export type Like = typeof likes.$inferSelect;
 export type Follow = typeof follows.$inferSelect;

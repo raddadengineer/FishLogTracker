@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -7,12 +8,19 @@ import { getMySpots, removeSpot, updateSpot, type MySpot } from "@/lib/mySpots";
 import { Map, Trash2, PlusCircle, Pencil } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { getFishSpeciesById } from "@/lib/fishSpecies";
+import { formatSize } from "@/lib/utils";
 
 export default function MySpotsPage() {
   const { toast } = useToast();
   const [spots, setSpots] = useState<MySpot[]>(() => getMySpots());
   const [noteDraft, setNoteDraft] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  const { data: catches = [] } = useQuery({
+    queryKey: ["/api/catches"],
+    enabled: true,
+  });
 
   useEffect(() => {
     const refresh = () => setSpots(getMySpots());
@@ -25,6 +33,56 @@ export default function MySpotsPage() {
   }, []);
 
   const editingSpot = useMemo(() => spots.find((s) => s.id === editingId) || null, [spots, editingId]);
+  const spotStats = useMemo(() => {
+    const list = Array.isArray(catches) ? (catches as any[]) : [];
+    const byName = new Map<
+      string,
+      { count: number; topSpecies?: string; topSpeciesCount: number; biggest?: { species: string; size: number } }
+    >();
+
+    const norm = (s: string) => s.trim().toLowerCase();
+
+    for (const s of spots) {
+      byName.set(norm(s.name), { count: 0, topSpeciesCount: 0 });
+    }
+
+    // Build counts
+    const speciesCounts: Record<string, Record<string, number>> = {};
+    for (const c of list) {
+      const lake = c.lakeName ? norm(String(c.lakeName)) : "";
+      if (!lake || !byName.has(lake)) continue;
+      const st = byName.get(lake)!;
+      st.count += 1;
+
+      const sp = String(c.species ?? "");
+      speciesCounts[lake] = speciesCounts[lake] || {};
+      speciesCounts[lake][sp] = (speciesCounts[lake][sp] || 0) + 1;
+
+      const sz = Number(c.size);
+      if (Number.isFinite(sz)) {
+        if (!st.biggest || sz > st.biggest.size) st.biggest = { species: sp, size: sz };
+      }
+    }
+
+    // Top species per lake
+    for (const [lake, counts] of Object.entries(speciesCounts)) {
+      let bestSp = "";
+      let bestCt = 0;
+      for (const [sp, ct] of Object.entries(counts)) {
+        if (ct > bestCt) {
+          bestCt = ct;
+          bestSp = sp;
+        }
+      }
+      const st = byName.get(lake);
+      if (st && bestSp) {
+        st.topSpecies = bestSp;
+        st.topSpeciesCount = bestCt;
+      }
+    }
+
+    return byName;
+  }, [catches, spots]);
 
   return (
     <div className="space-y-4">
@@ -57,7 +115,7 @@ export default function MySpotsPage() {
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base">{s.name}</CardTitle>
                 </CardHeader>
-                <CardContent className="flex items-center justify-between gap-3">
+                <CardContent className="flex items-start justify-between gap-3">
                   <div className="text-xs text-gray-600">
                     {s.latitude.toFixed(4)}, {s.longitude.toFixed(4)}
                     <div className="text-[11px] text-gray-500 mt-1">
@@ -73,6 +131,36 @@ export default function MySpotsPage() {
                         Notes: {s.notes}
                       </div>
                     ) : null}
+
+                    {(() => {
+                      const st = spotStats.get(s.name.trim().toLowerCase());
+                      if (!st) return null;
+                      return (
+                        <div className="mt-2 text-[11px] text-gray-700">
+                          <div>
+                            <span className="font-medium">{st.count}</span> catches
+                          </div>
+                          {st.topSpecies ? (
+                            <div>
+                              Top species:{" "}
+                              <span className="font-medium">
+                                {getFishSpeciesById(st.topSpecies)?.name || st.topSpecies}
+                              </span>{" "}
+                              ({st.topSpeciesCount})
+                            </div>
+                          ) : null}
+                          {st.biggest ? (
+                            <div>
+                              Biggest:{" "}
+                              <span className="font-medium">
+                                {getFishSpeciesById(st.biggest.species)?.name || st.biggest.species}
+                              </span>{" "}
+                              ({formatSize(st.biggest.size)})
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   <div className="flex items-center gap-2">

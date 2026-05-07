@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { getMySpots, removeSpot, updateSpot, type MySpot } from "@/lib/mySpots";
-import { Map, Trash2, PlusCircle, Pencil } from "lucide-react";
+import { Map as MapIcon, Trash2, PlusCircle, Pencil } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { getFishSpeciesById } from "@/lib/fishSpecies";
@@ -92,7 +92,7 @@ export default function MySpotsPage() {
         </div>
         <Button asChild variant="outline">
           <Link href="/map">
-            <Map className="h-4 w-4 mr-1" />
+            <MapIcon className="h-4 w-4 mr-1" />
             Open map
           </Link>
         </Button>
@@ -169,7 +169,7 @@ export default function MySpotsPage() {
                   <div className="flex items-center gap-2">
                     <Button asChild size="sm" variant="outline">
                       <Link href={`/map?lat=${encodeURIComponent(String(s.latitude))}&lng=${encodeURIComponent(String(s.longitude))}`}>
-                        <Map className="h-4 w-4 mr-1" />
+                        <MapIcon className="h-4 w-4 mr-1" />
                         View
                       </Link>
                     </Button>

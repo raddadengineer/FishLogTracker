@@ -5,7 +5,8 @@
 
 declare const self: ServiceWorkerGlobalScope;
 
-const CACHE_NAME = 'fish-tracker-v1';
+// Bump this when caching logic changes to force refresh.
+const CACHE_NAME = 'fish-tracker-v2';
 const RUNTIME_CACHE = 'runtime-cache';
 // NOTE: we don't ship a separate offline.html; navigation falls back to cached index.html.
 const APP_SHELL = ['/', '/index.html'];
@@ -39,14 +40,63 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   // Skip cross-origin requests
   if (event.request.url.startsWith(self.location.origin)) {
+    const url = new URL(event.request.url);
+
+    // Always keep index.html fresh when online (prevents white-screen on new deploy).
+    if (url.pathname === "/index.html") {
+      event.respondWith(
+        fetch(event.request)
+          .then(async (response) => {
+            const cache = await caches.open(CACHE_NAME);
+            cache.put("/index.html", response.clone());
+            return response;
+          })
+          .catch(async () => {
+            const cache = await caches.open(CACHE_NAME);
+            const cached = await cache.match("/index.html");
+            return cached || new Response("Offline", { status: 503, headers: { "Content-Type": "text/plain" } });
+          }),
+      );
+      return;
+    }
+
+    // Cache built assets so upgrades don't strand clients on missing chunks.
+    if (url.pathname.startsWith("/assets/")) {
+      event.respondWith(
+        caches.open(RUNTIME_CACHE).then(async (cache) => {
+          const cached = await cache.match(event.request);
+          const fetchPromise = fetch(event.request)
+            .then((response) => {
+              cache.put(event.request, response.clone());
+              return response;
+            })
+            .catch(() => cached || new Response("Offline", { status: 503, headers: { "Content-Type": "text/plain" } }));
+          return cached || fetchPromise;
+        }),
+      );
+      return;
+    }
+
     // SPA navigations: serve cached index.html when offline so routes still open.
     if (event.request.mode === 'navigate') {
       event.respondWith(
-        fetch(event.request).catch(async () => {
-          const cache = await caches.open(CACHE_NAME);
-          const cached = await cache.match('/index.html');
-          return cached || new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain' } });
-        })
+        fetch(event.request)
+          .then(async (response) => {
+            // Opportunistically refresh cached index.html during navigations.
+            try {
+              const cache = await caches.open(CACHE_NAME);
+              const freshIndex = await fetch("/index.html");
+              cache.put("/index.html", freshIndex.clone());
+            } catch {
+              // ignore
+            }
+            return response;
+          })
+          .catch(async () => {
+            const cache = await caches.open(CACHE_NAME);
+            const cached = await cache.match('/index.html');
+            return cached || new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain' } });
+          })
       );
       return;
     }

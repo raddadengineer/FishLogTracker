@@ -95,3 +95,19 @@ export function challengeCompletionStorageKey(userId?: string | null) {
   return `fishtracker_challenges_completed_${u}_${weekKey()}`;
 }
 
+export function weeklyChampionKey(userId?: string | null, wk = weekKey()) {
+  const u = userId ? String(userId) : "anon";
+  return `fishtracker_weekly_champion_${u}_${wk}`;
+}
+
+export function getWeeklyChampionCount(userId?: string | null) {
+  const prefix = `fishtracker_weekly_champion_${userId ? String(userId) : "anon"}_`;
+  let count = 0;
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (!k) continue;
+    if (k.startsWith(prefix) && localStorage.getItem(k) === "true") count++;
+  }
+  return count;
+}
+

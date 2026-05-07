@@ -14,8 +14,9 @@ import CatchForm from "@/components/catches/CatchForm";
 import { Button } from "@/components/ui/button";
 import { computeStreak } from "@/lib/funStats";
 import { Progress } from "@/components/ui/progress";
-import { challengeCompletionStorageKey, computeWeeklyChallenges } from "@/lib/challenges";
+import { challengeCompletionStorageKey, computeWeeklyChallenges, weeklyChampionKey } from "@/lib/challenges";
 import { useToast } from "@/hooks/use-toast";
+import ConfettiBurst from "@/components/fun/ConfettiBurst";
 
 export default function Home() {
   const { user, isAuthenticated } = useAuth();
@@ -71,6 +72,7 @@ export default function Home() {
 
   const streak = useMemo(() => computeStreak((userCatches as any[]) || []), [userCatches]);
   const weeklyChallenges = useMemo(() => computeWeeklyChallenges((userCatches as any[]) || []), [userCatches]);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -85,6 +87,20 @@ export default function Home() {
       });
       newly.forEach((c) => prev.add(c.id));
       localStorage.setItem(key, JSON.stringify(Array.from(prev)));
+    }
+
+    // Weekly champion reward when all challenges complete
+    const allDone = weeklyChallenges.length > 0 && weeklyChallenges.every((c) => c.completed);
+    const champKey = weeklyChampionKey((user as any)?.id || localStorage.getItem("currentUserId"));
+    const already = localStorage.getItem(champKey) === "true";
+    if (allDone && !already) {
+      localStorage.setItem(champKey, "true");
+      setShowConfetti(true);
+      toast({
+        title: "👑 Weekly Champion!",
+        description: "You completed all weekly challenges. Trophy earned.",
+      });
+      window.setTimeout(() => setShowConfetti(false), 1500);
     }
   }, [weeklyChallenges, isAuthenticated, toast, user]);
   
@@ -256,6 +272,7 @@ export default function Home() {
 
   return (
     <>
+      {showConfetti ? <ConfettiBurst /> : null}
       {/* Welcome section */}
       <section className="mb-6">
         <h1 className="text-xl font-semibold">

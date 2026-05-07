@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import CatchForm from "@/components/catches/CatchForm";
 import { BADGES, computeEarnedBadges, type BadgeId } from "@/lib/badges";
+import { getWeeklyChampionCount } from "@/lib/challenges";
 
 export default function ProfilePage() {
   const params = useParams();
@@ -83,6 +84,11 @@ export default function ProfilePage() {
   });
 
   const earnedBadges = React.useMemo(() => computeEarnedBadges((catches as any[]) || []), [catches]);
+  const weeklyTrophies = React.useMemo(
+    () => getWeeklyChampionCount(userId as any),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [userId, catches],
+  );
 
   useEffect(() => {
     if (!isOwnProfile) return;
@@ -588,6 +594,21 @@ export default function ProfilePage() {
 
           {/* Badges tab */}
           <TabsContent value="badges" className="pt-4">
+            <Card className="mb-4">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Trophy className="h-5 w-5 text-amber-600" />
+                  Weekly trophies
+                </CardTitle>
+                <CardDescription>Earned by completing all weekly challenges.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-gray-700">Total trophies</div>
+                  <div className="text-lg font-semibold">{weeklyTrophies}</div>
+                </div>
+              </CardContent>
+            </Card>
             <Card className="mb-4">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">

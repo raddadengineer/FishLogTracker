@@ -9,6 +9,7 @@ import { GoogleDriveRestoreButton } from "./GoogleDriveRestoreButton";
 import { clientAuthHeaders } from "@/lib/queryClient";
 import { mergeImportBackupPayload, parseFishlogBackupJson } from "@/lib/backupImport";
 import { exportDeviceBackup, importDeviceBackup } from "@/lib/deviceBackup";
+import { buildBackupZip, restoreBackupZip } from "@/lib/deviceBackupZip";
 
 async function fetchExportJson(): Promise<object> {
   const res = await fetch("/api/user/backup/export", {
@@ -49,14 +50,16 @@ export function DataBackupSection() {
   async function handleDownload() {
     setBusy("export");
     try {
-      const data = await fetchExportJson();
-      const device = exportDeviceBackup();
       const stamp = new Date().toISOString().slice(0, 10);
-      downloadJson({ ...(data as object), device }, `fishlogtracker-backup-${stamp}.json`);
-      toast({
-        title: "Backup downloaded",
-        description: "Includes cloud data plus this device’s My Spots, offline catches, and settings.",
-      });
+      const zipBlob = await buildBackupZip();
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `fishlogtracker-backup-${stamp}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      toast({ title: "Backup downloaded", description: "ZIP includes cloud data plus this device’s offline photos." });
     } catch (e) {
       toast({
         title: "Download failed",
@@ -75,19 +78,33 @@ export function DataBackupSection() {
 
     setBusy("import");
     try {
-      const text = await file.text();
-      const body = parseFishlogBackupJson(text);
-      const { imported, rowErrorCount: errCount } = await mergeImportBackupPayload(body);
+      let imported = 0;
+      let errCount = 0;
       let deviceRestored: string | null = null;
-      try {
-        const d = (body as any).device;
-        if (d) {
-          const r = importDeviceBackup(d);
-          deviceRestored = `${r.restored.mySpots} spot(s), ${r.restored.offlineCatches} offline catch(es)`;
+      let photosRestored: number | null = null;
+
+      if (file.name.toLowerCase().endsWith(".zip")) {
+        const r = await restoreBackupZip(file);
+        imported = r.imported;
+        errCount = r.rowErrorCount;
+        deviceRestored = `${r.deviceRestored.mySpots} spot(s), ${r.deviceRestored.offlineCatches} offline catch(es)`;
+        photosRestored = r.photosRestored;
+      } else {
+        const text = await file.text();
+        const body = parseFishlogBackupJson(text);
+        const r = await mergeImportBackupPayload(body);
+        imported = r.imported;
+        errCount = r.rowErrorCount;
+        try {
+          const d = (body as any).device;
+          if (d) {
+            const dr = importDeviceBackup(d);
+            deviceRestored = `${dr.restored.mySpots} spot(s), ${dr.restored.offlineCatches} offline catch(es)`;
+          }
+        } catch (e) {
+          deviceRestored = null;
+          console.warn("Device restore skipped:", e);
         }
-      } catch (e) {
-        deviceRestored = null;
-        console.warn("Device restore skipped:", e);
       }
 
       await invalidateCatchQueries();
@@ -97,7 +114,9 @@ export function DataBackupSection() {
         description:
           errCount > 0
             ? `Imported ${imported} catch(es). ${errCount} row(s) could not be imported.`
-            : `Imported ${imported} catch(es).${deviceRestored ? ` Restored device data: ${deviceRestored}.` : ""}`,
+            : `Imported ${imported} catch(es).${deviceRestored ? ` Restored device data: ${deviceRestored}.` : ""}${
+                photosRestored != null ? ` Restored ${photosRestored} offline photo(s).` : ""
+              }`,
         variant: errCount > 0 ? "destructive" : "default",
       });
     } catch (e) {
@@ -135,7 +154,8 @@ export function DataBackupSection() {
       <div className="space-y-2">
         <Label>Download backup</Label>
         <p className="text-sm text-muted-foreground">
-          JSON file with your profile + all catches (cloud) and this device’s My Spots + offline catches + settings.
+          ZIP file with your profile + all catches (cloud) and this device’s My Spots + offline catches + settings +
+          offline photos.
         </p>
         <Button type="button" variant="secondary" onClick={handleDownload} disabled={busy !== null}>
           {busy === "export" ? <LoaderCircle className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
@@ -182,13 +202,13 @@ export function DataBackupSection() {
       <div className="space-y-2">
         <Label>Restore from file</Label>
         <p className="text-sm text-muted-foreground">
-          Choose a backup JSON (from download, Drive, or iCloud Files). This will merge cloud catches and also restore
-          any included device data (My Spots, offline catches, settings) onto this device.
+          Choose a backup ZIP (preferred) or JSON. Import will merge cloud catches and restore included device data. ZIP
+          restores offline photos too.
         </p>
         <input
           ref={fileInputRef}
           type="file"
-          accept="application/json,.json"
+          accept="application/zip,.zip,application/json,.json"
           className="hidden"
           onChange={handleFileSelected}
         />

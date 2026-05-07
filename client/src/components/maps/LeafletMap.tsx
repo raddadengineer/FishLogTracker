@@ -39,6 +39,7 @@ interface LeafletMapProps {
   lakes?: LakeMarker[];
   height?: string;
   showControls?: boolean;
+  withCard?: boolean;
   onMarkerClick?: (markerId: number, type: 'catch' | 'lake') => void;
 }
 
@@ -47,6 +48,7 @@ export default function LeafletMap({
   lakes = [], 
   height = "400px",
   showControls = true,
+  withCard = true,
   onMarkerClick 
 }: LeafletMapProps) {
   const mapRef = useRef<L.Map | null>(null);
@@ -318,19 +320,14 @@ export default function LeafletMap({
     }).addTo(mapRef.current);
   };
 
-  return (
-    <Card className="overflow-hidden shadow-sm border border-gray-100">
-      <div 
-        ref={mapContainerRef} 
-        className="w-full"
-        style={{ height }}
-      ></div>
-      
+  const mapEl = (
+    <>
+      <div ref={mapContainerRef} className="w-full" style={{ height }}></div>
       {showControls && (
-        <CardContent className="p-3 flex justify-between">
-          <Button 
-            variant="outline" 
-            size="sm" 
+        <CardContent className={withCard ? "p-3 flex justify-between" : "p-2 flex justify-between"}>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={centerOnUserLocation}
             disabled={isLocationLoading}
           >
@@ -341,7 +338,7 @@ export default function LeafletMap({
             )}
             My Location
           </Button>
-          
+
           <div className="flex space-x-2">
             <Button
               variant="outline"
@@ -361,7 +358,7 @@ export default function LeafletMap({
               <i className="ri-fire-line mr-1"></i>
               Heatmap
             </Button>
-            
+
             <Button variant="outline" size="sm">
               <i className="ri-filter-line mr-1"></i>
               Filter
@@ -369,6 +366,16 @@ export default function LeafletMap({
           </div>
         </CardContent>
       )}
+    </>
+  );
+
+  if (!withCard) {
+    return <div className="overflow-hidden">{mapEl}</div>;
+  }
+
+  return (
+    <Card className="overflow-hidden shadow-sm border border-gray-100">
+      {mapEl}
     </Card>
   );
 }

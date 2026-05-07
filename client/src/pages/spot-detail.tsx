@@ -1,13 +1,14 @@
 import { useMemo } from "react";
 import { Link, useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Map, Trophy } from "lucide-react";
+import { ArrowLeft, Map, Trophy, Share2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import LeafletMap from "@/components/maps/LeafletMap";
 import { getMySpots, type MySpot } from "@/lib/mySpots";
 import { getFishSpeciesById } from "@/lib/fishSpecies";
 import { formatSize } from "@/lib/utils";
+import { shareSpotCard } from "@/lib/shareSpotCard";
 
 export default function SpotDetailPage() {
   const params = useParams<{ id: string }>();
@@ -187,12 +188,34 @@ export default function SpotDetailPage() {
           </div>
           {spot.notes ? <div className="text-sm text-gray-700 mt-2">{spot.notes}</div> : null}
         </div>
-        <Button asChild variant="outline">
-          <Link href={`/map?lat=${encodeURIComponent(String(spot.latitude))}&lng=${encodeURIComponent(String(spot.longitude))}`}>
-            <Map className="h-4 w-4 mr-1" />
-            Open map
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={async () => {
+              await shareSpotCard({
+                spot: {
+                  name: spot.name,
+                  latitude: spot.latitude,
+                  longitude: spot.longitude,
+                  catchCount: stats.count,
+                  topSpecies: stats.topSpecies?.species ?? null,
+                  biggest: stats.biggest ? { species: stats.biggest.species, size: stats.biggest.size } : null,
+                },
+                filename: `fishtracker-spot-${spot.name.replaceAll(" ", "-").toLowerCase()}.png`,
+              });
+            }}
+          >
+            <Share2 className="h-4 w-4 mr-1" />
+            Share
+          </Button>
+          <Button asChild variant="outline">
+            <Link href={`/map?lat=${encodeURIComponent(String(spot.latitude))}&lng=${encodeURIComponent(String(spot.longitude))}`}>
+              <Map className="h-4 w-4 mr-1" />
+              Open map
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <Card className="overflow-hidden">

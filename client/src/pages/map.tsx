@@ -50,16 +50,39 @@ export default function MapPage() {
   const [showMySpots, setShowMySpots] = useState(true);
   const [displayedCatches, setDisplayedCatches] = useState<any[]>([]);
 
+  const [isHydratingFromUrl, setIsHydratingFromUrl] = useState(true);
+
   // Parse URL parameters for initial map position
   const queryParams = new URLSearchParams(window.location.search);
   const initialLat = parseFloat(queryParams.get("lat") || "0") || undefined;
   const initialLng = parseFloat(queryParams.get("lng") || "0") || undefined;
 
   useEffect(() => {
-    const tab = new URLSearchParams(window.location.search).get("tab");
-    if (tab === "list") {
-      setActiveTab("list");
+    const qp = new URLSearchParams(window.location.search);
+
+    const tab = qp.get("tab");
+    if (tab === "list" || tab === "map") setActiveTab(tab);
+
+    const q = qp.get("q");
+    if (q != null) setSearchQuery(q);
+
+    const sort = qp.get("sort");
+    if (sort === "newest" || sort === "biggest") setSortBy(sort);
+
+    const species = qp.get("species") ?? "";
+    const lake = qp.get("lake") ?? "";
+    const hasGps = qp.get("hasGps") === "1";
+    const hasPhoto = qp.get("hasPhoto") === "1";
+    const last30Days = qp.get("last30Days") === "1";
+    if (species || lake || hasGps || hasPhoto || last30Days) {
+      setFilters({ species, lake, hasGps, hasPhoto, last30Days });
     }
+
+    const mySpotsOn = qp.get("mySpots");
+    if (mySpotsOn === "0") setShowMySpots(false);
+
+    // allow URL state to settle before we start writing back
+    setIsHydratingFromUrl(false);
   }, []);
 
   useEffect(() => {
@@ -83,6 +106,40 @@ export default function MapPage() {
       setIsLogCatchOpen(true);
     }
   }, []);
+
+  // Keep URL in sync (shareable map state)
+  useEffect(() => {
+    if (isHydratingFromUrl) return;
+    const qp = new URLSearchParams(window.location.search);
+
+    const setOrDel = (k: string, v: string | null | undefined, emptyIsDelete: boolean = true) => {
+      if (v == null || (emptyIsDelete && v === "")) qp.delete(k);
+      else qp.set(k, v);
+    };
+
+    setOrDel("tab", activeTab === "map" ? null : "list");
+    setOrDel("q", searchQuery.trim() || null);
+    setOrDel("sort", sortBy === "newest" ? null : sortBy);
+    setOrDel("species", filters.species.trim() || null);
+    setOrDel("lake", filters.lake.trim() || null);
+    setOrDel("hasGps", filters.hasGps ? "1" : null);
+    setOrDel("hasPhoto", filters.hasPhoto ? "1" : null);
+    setOrDel("last30Days", filters.last30Days ? "1" : null);
+    setOrDel("mySpots", showMySpots ? null : "0");
+
+    // Persist last manual center (not live GPS)
+    if (mapCenter && Number.isFinite(mapCenter.latitude) && Number.isFinite(mapCenter.longitude)) {
+      setOrDel("lat", String(mapCenter.latitude));
+      setOrDel("lng", String(mapCenter.longitude));
+    } else {
+      qp.delete("lat");
+      qp.delete("lng");
+    }
+
+    const qs = qp.toString();
+    const next = `${window.location.pathname}${qs ? `?${qs}` : ""}`;
+    window.history.replaceState(null, "", next);
+  }, [activeTab, searchQuery, sortBy, filters, showMySpots, mapCenter, isHydratingFromUrl]);
 
   // Fetch all catches
   const { data: catches = [], isLoading: isLoadingCatches } = useQuery({

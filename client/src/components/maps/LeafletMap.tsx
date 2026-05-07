@@ -40,6 +40,7 @@ interface LeafletMapProps {
   height?: string;
   showControls?: boolean;
   withCard?: boolean;
+  preferCatchCenter?: boolean;
   onMarkerClick?: (markerId: number, type: 'catch' | 'lake') => void;
 }
 
@@ -49,6 +50,7 @@ export default function LeafletMap({
   height = "400px",
   showControls = true,
   withCard = true,
+  preferCatchCenter = false,
   onMarkerClick 
 }: LeafletMapProps) {
   const mapRef = useRef<L.Map | null>(null);
@@ -93,18 +95,26 @@ export default function LeafletMap({
       lakeMarkersRef.current = L.layerGroup().addTo(mapRef.current);
       userLayerRef.current = L.layerGroup().addTo(mapRef.current);
       
-      // Initialize with user location if available
-      if (location) {
-        mapRef.current.setView([location.latitude, location.longitude], 12);
+      // Prefer centering on provided catch coordinates (e.g. catch detail embed)
+      const firstCatch = catches.find((c) => c.latitude && c.longitude);
+      if (preferCatchCenter && firstCatch) {
+        mapRef.current.setView([firstCatch.latitude, firstCatch.longitude], 14);
       } else {
-        // Try to get user location
-        getLocation().then(loc => {
-          if (loc && mapRef.current) {
-            mapRef.current.setView([loc.latitude, loc.longitude], 12);
-          }
-        }).catch(() => {
-          // If location access is denied, keep default view
-        });
+        // Otherwise center on user location if available
+        if (location) {
+          mapRef.current.setView([location.latitude, location.longitude], 12);
+        } else {
+          // Try to get user location
+          getLocation()
+            .then((loc) => {
+              if (loc && mapRef.current) {
+                mapRef.current.setView([loc.latitude, loc.longitude], 12);
+              }
+            })
+            .catch(() => {
+              // If location access is denied, keep default view
+            });
+        }
       }
     }
     
@@ -116,6 +126,15 @@ export default function LeafletMap({
       }
     };
   }, []);
+
+  // If we prefer catch centering, keep map focused on the catch when data loads.
+  useEffect(() => {
+    if (!preferCatchCenter || !mapRef.current) return;
+    const firstCatch = catches.find((c) => c.latitude && c.longitude);
+    if (firstCatch) {
+      mapRef.current.setView([firstCatch.latitude, firstCatch.longitude], Math.max(mapRef.current.getZoom(), 14));
+    }
+  }, [preferCatchCenter, catches]);
 
   // Draw user GPS dot (and optionally follow)
   useEffect(() => {

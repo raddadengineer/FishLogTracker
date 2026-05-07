@@ -119,7 +119,16 @@ export default function CatchDetailPage() {
     }
 
     // default: interactive OpenStreetMap (Leaflet)
-    return <LeafletMap catches={mapCatches} lakes={[]} height="280px" showControls withCard={false} />;
+    return (
+      <LeafletMap
+        catches={mapCatches}
+        lakes={[]}
+        height="280px"
+        showControls
+        withCard={false}
+        preferCatchCenter
+      />
+    );
   }, [hasGps, settings.mapEmbedProvider, lat, lng, mapCatches]);
 
   const embeddedMapActions = useMemo(() => {

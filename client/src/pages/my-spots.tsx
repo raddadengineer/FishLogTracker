@@ -113,7 +113,11 @@ export default function MySpotsPage() {
             .map((s) => (
               <Card key={s.id} className="bg-white shadow-sm border border-gray-100">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base">{s.name}</CardTitle>
+                  <CardTitle className="text-base">
+                    <Link href={`/my-spots/${encodeURIComponent(s.id)}`}>
+                      <a className="hover:underline">{s.name}</a>
+                    </Link>
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="flex items-start justify-between gap-3">
                   <div className="text-xs text-gray-600">

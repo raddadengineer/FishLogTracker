@@ -1,7 +1,7 @@
 import { Link, useParams } from "wouter";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Loader2, MapPin, ExternalLink } from "lucide-react";
+import { ArrowLeft, Loader2, MapPin, ExternalLink, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import CatchCard from "@/components/catches/CatchCard";
@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import CatchPinEditor from "@/components/maps/CatchPinEditor";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { shareCatchCard } from "@/lib/shareCatchCard";
 
 type CatchApi = {
   id: number;
@@ -235,7 +236,7 @@ export default function CatchDetailPage() {
       />
 
       {hasGps ? (
-        <div className="mt-3 flex flex-wrap gap-4">
+        <div className="mt-3 flex flex-wrap items-center gap-4">
           <a
             className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
             href={`https://www.google.com/maps?q=${lat},${lng}`}
@@ -254,6 +255,29 @@ export default function CatchDetailPage() {
             <ExternalLink className="h-3.5 w-3.5" />
             Open in OpenStreetMap
           </a>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              try {
+                await shareCatchCard({
+                  catchData: api as any,
+                  filename: `fishtracker-catch-${api.id}.png`,
+                });
+                toast({ title: "Ready to share", description: "Shared or downloaded your catch card." });
+              } catch {
+                toast({
+                  title: "Share failed",
+                  description: "Could not generate the share card.",
+                  variant: "destructive",
+                });
+              }
+            }}
+          >
+            <Share2 className="h-4 w-4 mr-1" />
+            Share
+          </Button>
         </div>
       ) : null}
     </div>

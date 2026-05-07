@@ -8,7 +8,7 @@ import StatCard from "@/components/dashboard/StatCard";
 import SpeciesChart from "@/components/dashboard/SpeciesChart";
 import SpotChip from "@/components/maps/SpotChip";
 import { Card, CardContent } from "@/components/ui/card";
-import { Fish, MapPin, LineChart, ActivitySquare } from "lucide-react";
+import { Fish, MapPin, Map, LineChart, ActivitySquare } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import CatchForm from "@/components/catches/CatchForm";
 import { Button } from "@/components/ui/button";
@@ -269,10 +269,10 @@ export default function Home() {
               onClick={() => window.location.href = "/map"}
             >
               <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center mb-2">
-                <MapPin className="h-5 w-5 text-secondary" />
+                <Map className="h-5 w-5 text-secondary" />
               </div>
               <span className="text-sm font-medium inline-flex items-center gap-1.5">
-                <MapPin className="h-4 w-4" />
+                <Map className="h-4 w-4" />
                 Explore Map
               </span>
             </Button>

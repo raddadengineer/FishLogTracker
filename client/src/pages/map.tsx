@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation as useWouterLocation } from "wouter";
 import { useLocation } from "@/hooks/useLocation";
@@ -16,7 +16,7 @@ import { Search, Fish, Map, Filter, Plus, Crosshair, Bookmark } from "lucide-rea
 import { formatDate, formatSize, formatWeight } from "@/lib/utils";
 import { getFishSpeciesById } from "@/lib/fishSpecies";
 import { useToast } from "@/hooks/use-toast";
-import { isSpotSaved, removeSpot, saveSpot, spotIdFromNameCoords } from "@/lib/mySpots";
+import { getMySpots, isSpotSaved, removeSpot, saveSpot, spotIdFromNameCoords, type MySpot } from "@/lib/mySpots";
 
 export default function MapPage() {
   const [_, navigate] = useWouterLocation();
@@ -45,6 +45,9 @@ export default function MapPage() {
   });
   const [selectedCatch, setSelectedCatch] = useState<number | null>(null);
   const [selectedLake, setSelectedLake] = useState<number | null>(null);
+  const [selectedMySpotId, setSelectedMySpotId] = useState<string | null>(null);
+  const [mySpots, setMySpots] = useState<MySpot[]>(() => getMySpots());
+  const [showMySpots, setShowMySpots] = useState(true);
   const [displayedCatches, setDisplayedCatches] = useState<any[]>([]);
 
   // Parse URL parameters for initial map position
@@ -174,12 +177,21 @@ export default function MapPage() {
     if (type === 'catch') {
       setSelectedCatch(id);
       setSelectedLake(null);
+      setSelectedMySpotId(null);
     } else {
       setSelectedLake(id);
       setSelectedCatch(null);
+      setSelectedMySpotId(null);
     }
     
     // Switch to list tab to see details
+    setActiveTab("list");
+  };
+
+  const handleSpotClick = (spotId: string) => {
+    setSelectedMySpotId(spotId);
+    setSelectedCatch(null);
+    setSelectedLake(null);
     setActiveTab("list");
   };
 
@@ -187,7 +199,23 @@ export default function MapPage() {
   const closeDetails = () => {
     setSelectedCatch(null);
     setSelectedLake(null);
+    setSelectedMySpotId(null);
   };
+
+  useEffect(() => {
+    const refresh = () => setMySpots(getMySpots());
+    window.addEventListener("storage", refresh);
+    const id = window.setInterval(refresh, 4000);
+    return () => {
+      window.removeEventListener("storage", refresh);
+      window.clearInterval(id);
+    };
+  }, []);
+
+  const selectedMySpot = useMemo(() => {
+    if (!selectedMySpotId) return null;
+    return mySpots.find((s) => s.id === selectedMySpotId) || null;
+  }, [mySpots, selectedMySpotId]);
 
   return (
     <>
@@ -265,11 +293,26 @@ export default function MapPage() {
 
         {/* Map Tab */}
         <TabsContent value="map" className="pt-2">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant={showMySpots ? "default" : "outline"}
+              onClick={() => setShowMySpots((v) => !v)}
+            >
+              My Spots {showMySpots ? "On" : "Off"}
+            </Button>
+            <Button type="button" size="sm" variant="outline" onClick={() => navigate("/my-spots")}>
+              Manage
+            </Button>
+          </div>
           <LeafletMap
             catches={catches}
             lakes={lakes}
+            mySpots={showMySpots ? mySpots : []}
             height="60vh"
             onMarkerClick={handleMarkerClick}
+            onSpotClick={handleSpotClick}
             initialCenter={mapCenter ?? undefined}
           />
         </TabsContent>
@@ -277,12 +320,12 @@ export default function MapPage() {
         {/* List Tab */}
         <TabsContent value="list" className="pt-2">
           {/* Show selected catch or lake details */}
-          {(selectedCatch || selectedLake) && (
+          {(selectedCatch || selectedLake || selectedMySpotId) && (
             <Card className="mb-4 bg-white shadow-sm border border-gray-100">
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-center">
                   <CardTitle className="text-md font-medium">
-                    {selectedCatch ? 'Catch Details' : 'Lake Details'}
+                    {selectedCatch ? 'Catch Details' : selectedLake ? 'Lake Details' : 'My Spot'}
                   </CardTitle>
                   <Button variant="ghost" size="sm" onClick={closeDetails}>
                     <i className="ri-close-line"></i>
@@ -416,6 +459,63 @@ export default function MapPage() {
                         {isSpotSaved(`lake:${selectedLakeData.id}`) ? "Unsave" : "Save spot"}
                       </Button>
                     </div>
+                  </div>
+                ) : selectedMySpot ? (
+                  <div className="space-y-3">
+                    <h3 className="text-lg font-medium">{selectedMySpot.name}</h3>
+
+                    <div className="bg-gray-50 p-3 rounded-md text-sm">
+                      <div className="text-xs text-gray-500 mb-1">Coordinates</div>
+                      <div className="font-medium">
+                        {selectedMySpot.latitude.toFixed(4)}, {selectedMySpot.longitude.toFixed(4)}
+                      </div>
+                      {selectedMySpot.notes ? (
+                        <div className="mt-2 text-xs text-gray-700">Notes: {selectedMySpot.notes}</div>
+                      ) : null}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setActiveTab("map");
+                          setMapCenter({
+                            latitude: selectedMySpot.latitude,
+                            longitude: selectedMySpot.longitude,
+                            zoom: 14,
+                          });
+                        }}
+                      >
+                        <Map className="h-4 w-4 mr-1" />
+                        Show on Map
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setCatchPrefill({
+                            lakeName: selectedMySpot.name,
+                            latitude: selectedMySpot.latitude,
+                            longitude: selectedMySpot.longitude,
+                          });
+                          setIsLogCatchOpen(true);
+                        }}
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        Log here
+                      </Button>
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      className="border-red-200 text-red-700 hover:bg-red-50"
+                      onClick={() => {
+                        removeSpot(selectedMySpot.id);
+                        setMySpots(getMySpots());
+                        toast({ title: "Removed", description: "Spot removed from My Spots." });
+                        closeDetails();
+                      }}
+                    >
+                      Remove from My Spots
+                    </Button>
                   </div>
                 ) : (
                   <div className="py-8 text-center">

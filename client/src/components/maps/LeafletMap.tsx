@@ -37,9 +37,17 @@ interface LakeMarker {
   catchCount: number;
 }
 
+interface MySpotMarker {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+}
+
 interface LeafletMapProps {
   catches?: CatchMarker[];
   lakes?: LakeMarker[];
+  mySpots?: MySpotMarker[];
   height?: string;
   showControls?: boolean;
   withCard?: boolean;
@@ -47,22 +55,26 @@ interface LeafletMapProps {
   initialCenter?: { latitude: number; longitude: number; zoom?: number };
   clusterMarkers?: boolean;
   onMarkerClick?: (markerId: number, type: 'catch' | 'lake') => void;
+  onSpotClick?: (spotId: string) => void;
 }
 
 export default function LeafletMap({ 
   catches = [], 
   lakes = [], 
+  mySpots = [],
   height = "400px",
   showControls = true,
   withCard = true,
   preferCatchCenter = false,
   initialCenter,
   clusterMarkers = true,
-  onMarkerClick 
+  onMarkerClick,
+  onSpotClick,
 }: LeafletMapProps) {
   const mapRef = useRef<L.Map | null>(null);
   const catchMarkersRef = useRef<L.LayerGroup | null>(null);
   const lakeMarkersRef = useRef<L.LayerGroup | null>(null);
+  const mySpotMarkersRef = useRef<L.LayerGroup | null>(null);
   const heatLayerRef = useRef<any | null>(null);
   const userLayerRef = useRef<L.LayerGroup | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -113,6 +125,7 @@ export default function LeafletMap({
         catchMarkersRef.current = L.layerGroup().addTo(mapRef.current);
         lakeMarkersRef.current = L.layerGroup().addTo(mapRef.current);
       }
+      mySpotMarkersRef.current = L.layerGroup().addTo(mapRef.current);
       userLayerRef.current = L.layerGroup().addTo(mapRef.current);
       
       // Explicit center (e.g. My Spots deep link)
@@ -316,6 +329,43 @@ export default function LeafletMap({
       marker.addTo(lakeMarkersRef.current!);
     });
   }, [lakes]);
+
+  // Add "My Spots" markers to map
+  useEffect(() => {
+    if (!mapRef.current || !mySpotMarkersRef.current) return;
+    mySpotMarkersRef.current.clearLayers();
+
+    mySpots.forEach((s) => {
+      if (!Number.isFinite(s.latitude) || !Number.isFinite(s.longitude)) return;
+
+      const customIcon = L.divIcon({
+        className: "custom-myspot-icon",
+        html: `<div class="bg-emerald-600 text-white rounded-full w-9 h-9 flex items-center justify-center shadow-md">
+                <i class="ri-bookmark-3-line"></i>
+              </div>`,
+        iconSize: [36, 36],
+        iconAnchor: [18, 18],
+      });
+
+      const marker = L.marker([s.latitude, s.longitude], {
+        icon: customIcon,
+        title: s.name,
+      });
+
+      marker.bindPopup(`
+        <div class="spot-popup">
+          <h4 class="font-medium">${String(s.name).replaceAll("<", "&lt;").replaceAll(">", "&gt;")}</h4>
+          <p class="text-xs text-gray-600">Saved spot</p>
+        </div>
+      `);
+
+      marker.on("click", () => {
+        onSpotClick?.(s.id);
+      });
+
+      marker.addTo(mySpotMarkersRef.current!);
+    });
+  }, [mySpots, onSpotClick]);
 
   // Center map on user location
   const centerOnUserLocation = async () => {

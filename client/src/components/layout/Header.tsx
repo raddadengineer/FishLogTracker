@@ -61,8 +61,8 @@ export default function Header() {
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
         <div className="flex items-center">
           <Link href="/" className="flex items-center">
-            <span className="text-primary font-semibold text-xl mr-1">Fish</span>
-            <span className="text-secondary font-semibold text-xl">Tracker</span>
+            <span className="text-slate-900 font-semibold text-xl mr-1">Fish</span>
+            <span className="text-sky-600 font-semibold text-xl">Tracker</span>
           </Link>
         </div>
         

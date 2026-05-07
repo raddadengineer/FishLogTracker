@@ -54,6 +54,55 @@ export default function SpotDetailPage() {
     };
   }, [spotCatches]);
 
+  const insights = useMemo(() => {
+    const byHour = new Array(24).fill(0) as number[];
+    const byMonth = new Array(12).fill(0) as number[];
+    const lureCounts: Record<string, number> = {};
+    const speciesCounts: Record<string, number> = {};
+
+    for (const c of spotCatches) {
+      const dt = new Date(c.catchDate ?? c.createdAt ?? 0);
+      if (Number.isFinite(dt.getTime())) {
+        byHour[dt.getHours()] += 1;
+        byMonth[dt.getMonth()] += 1;
+      }
+
+      const lure = String(c.lure ?? "").trim();
+      if (lure) lureCounts[lure] = (lureCounts[lure] || 0) + 1;
+
+      const sp = String(c.species ?? "").trim();
+      if (sp) speciesCounts[sp] = (speciesCounts[sp] || 0) + 1;
+    }
+
+    const bestHour = byHour
+      .map((count, hour) => ({ hour, count }))
+      .sort((a, b) => b.count - a.count)[0];
+    const bestMonth = byMonth
+      .map((count, month) => ({ month, count }))
+      .sort((a, b) => b.count - a.count)[0];
+    const topLure = Object.entries(lureCounts).sort((a, b) => b[1] - a[1])[0];
+
+    const topSpeciesList = Object.entries(speciesCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([species, count]) => ({ species, count }));
+
+    const monthName = (m: number) =>
+      ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m] || "—";
+    const hourLabel = (h: number) => {
+      const ampm = h >= 12 ? "PM" : "AM";
+      const hh = h % 12 === 0 ? 12 : h % 12;
+      return `${hh}${ampm}`;
+    };
+
+    return {
+      bestHour: bestHour?.count ? { label: hourLabel(bestHour.hour), count: bestHour.count } : null,
+      bestMonth: bestMonth?.count ? { label: monthName(bestMonth.month), count: bestMonth.count } : null,
+      topLure: topLure ? { lure: topLure[0], count: topLure[1] } : null,
+      topSpeciesList,
+    };
+  }, [spotCatches]);
+
   if (!spot) {
     return (
       <div className="container max-w-xl mx-auto py-6 px-4">
@@ -135,6 +184,76 @@ export default function SpotDetailPage() {
                 </div>
                 <div className="text-xs text-gray-600">{stats.topSpecies.count} catches</div>
               </>
+            ) : (
+              <span className="text-gray-600">—</span>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Best month</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm">
+            {insights.bestMonth ? (
+              <>
+                <div className="text-lg font-semibold">{insights.bestMonth.label}</div>
+                <div className="text-xs text-gray-600">{insights.bestMonth.count} catches</div>
+              </>
+            ) : (
+              <span className="text-gray-600">—</span>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Best time</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm">
+            {insights.bestHour ? (
+              <>
+                <div className="text-lg font-semibold">{insights.bestHour.label}</div>
+                <div className="text-xs text-gray-600">{insights.bestHour.count} catches</div>
+              </>
+            ) : (
+              <span className="text-gray-600">—</span>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Top lure</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm">
+            {insights.topLure ? (
+              <>
+                <div className="font-medium line-clamp-2">{insights.topLure.lure}</div>
+                <div className="text-xs text-gray-600">{insights.topLure.count} catches</div>
+              </>
+            ) : (
+              <span className="text-gray-600">—</span>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Species mix</CardTitle>
+          </CardHeader>
+          <CardContent className="text-xs text-gray-700 space-y-1">
+            {insights.topSpeciesList.length ? (
+              insights.topSpeciesList.map((r) => (
+                <div key={r.species} className="flex items-center justify-between gap-2">
+                  <div className="min-w-0 truncate">
+                    {getFishSpeciesById(r.species)?.name || r.species}
+                  </div>
+                  <div className="text-gray-600">{r.count}</div>
+                </div>
+              ))
             ) : (
               <span className="text-gray-600">—</span>
             )}

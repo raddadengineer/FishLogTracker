@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -67,6 +67,26 @@ export default function CatchForm({ catchToEdit, onSuccess, prefill }: CatchForm
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isOnline = navigator.onLine;
 
+  const RECENT_LAKES_KEY = "fishtracker_recent_lakes";
+  const RECENT_LURES_KEY = "fishtracker_recent_lures";
+  const LAST_TEMPLATE_KEY = "fishtracker_last_catch_template";
+
+  const recentLakes = useMemo(() => {
+    try {
+      return (JSON.parse(localStorage.getItem(RECENT_LAKES_KEY) || "[]") as string[]).slice(0, 6);
+    } catch {
+      return [] as string[];
+    }
+  }, []);
+
+  const recentLures = useMemo(() => {
+    try {
+      return (JSON.parse(localStorage.getItem(RECENT_LURES_KEY) || "[]") as string[]).slice(0, 6);
+    } catch {
+      return [] as string[];
+    }
+  }, []);
+
   // Form setup
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -104,6 +124,50 @@ export default function CatchForm({ catchToEdit, onSuccess, prefill }: CatchForm
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const applyLastTemplate = () => {
+    try {
+      const t = JSON.parse(localStorage.getItem(LAST_TEMPLATE_KEY) || "null") as Partial<FormValues> | null;
+      if (!t) return;
+      (["species", "lakeName", "lure", "depth", "temperature"] as const).forEach((k) => {
+        const v = (t as any)[k];
+        if (v !== undefined) {
+          // @ts-expect-error dynamic set
+          form.setValue(k, v);
+        }
+      });
+      toast({ title: "Template applied", description: "Filled from your last catch." });
+    } catch {
+      // ignore
+    }
+  };
+
+  const recordRecentsAndTemplate = (data: FormValues) => {
+    try {
+      if (data.lakeName) {
+        const prev = (JSON.parse(localStorage.getItem(RECENT_LAKES_KEY) || "[]") as string[]).filter(Boolean);
+        const next = [data.lakeName, ...prev.filter((x) => x !== data.lakeName)].slice(0, 10);
+        localStorage.setItem(RECENT_LAKES_KEY, JSON.stringify(next));
+      }
+      if (data.lure) {
+        const prev = (JSON.parse(localStorage.getItem(RECENT_LURES_KEY) || "[]") as string[]).filter(Boolean);
+        const next = [data.lure, ...prev.filter((x) => x !== data.lure)].slice(0, 10);
+        localStorage.setItem(RECENT_LURES_KEY, JSON.stringify(next));
+      }
+      localStorage.setItem(
+        LAST_TEMPLATE_KEY,
+        JSON.stringify({
+          species: data.species,
+          lakeName: data.lakeName,
+          lure: data.lure,
+          depth: data.depth,
+          temperature: data.temperature,
+        }),
+      );
+    } catch {
+      // ignore
+    }
+  };
 
   // Improved direct access to geolocation
   const getMyLocation = () => {
@@ -361,6 +425,7 @@ export default function CatchForm({ catchToEdit, onSuccess, prefill }: CatchForm
             : "Your catch has been logged!",
         });
 
+        recordRecentsAndTemplate(data);
         touchSpotLastVisitedByName(data.lakeName);
 
         // Fun: PB celebration (only on new catches)
@@ -415,6 +480,7 @@ export default function CatchForm({ catchToEdit, onSuccess, prefill }: CatchForm
               : "Your catch has been saved and will sync when you're online.",
         });
 
+        recordRecentsAndTemplate(data);
         touchSpotLastVisitedByName(data.lakeName);
 
         // Fun: PB celebration while offline too
@@ -457,6 +523,14 @@ export default function CatchForm({ catchToEdit, onSuccess, prefill }: CatchForm
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        {!catchToEdit && (
+          <div className="flex justify-end">
+            <Button type="button" variant="outline" size="sm" onClick={applyLastTemplate}>
+              <i className="ri-repeat-2-line mr-1"></i>
+              Repeat last catch
+            </Button>
+          </div>
+        )}
         {/* Photo upload */}
         <div className="mb-4">
           <FormLabel>Add Photos</FormLabel>
@@ -597,6 +671,20 @@ export default function CatchForm({ catchToEdit, onSuccess, prefill }: CatchForm
                     <MapPin className="h-4 w-4 text-gray-400" />
                   </div>
                 </div>
+                {recentLakes.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {recentLakes.map((l) => (
+                      <button
+                        key={l}
+                        type="button"
+                        onClick={() => field.onChange(l)}
+                        className="text-xs px-2 py-1 rounded-full border border-gray-200 bg-gray-50 hover:bg-gray-100"
+                      >
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <FormMessage />
               </FormItem>
             )}
@@ -776,6 +864,20 @@ export default function CatchForm({ catchToEdit, onSuccess, prefill }: CatchForm
                   {...field} 
                 />
               </FormControl>
+              {recentLures.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {recentLures.map((l) => (
+                    <button
+                      key={l}
+                      type="button"
+                      onClick={() => field.onChange(l)}
+                      className="text-xs px-2 py-1 rounded-full border border-gray-200 bg-gray-50 hover:bg-gray-100"
+                    >
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              )}
               <FormMessage />
             </FormItem>
           )}

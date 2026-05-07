@@ -271,8 +271,20 @@ export default function Home() {
               <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center mb-2">
                 <Map className="h-5 w-5 text-secondary" />
               </div>
-              <span className="text-sm font-medium inline-flex items-center gap-1.5">
-                <Map className="h-4 w-4" />
+              <span className="text-sm font-medium inline-flex items-center gap-2">
+                <span className="relative h-6 w-10 overflow-hidden rounded-md border border-gray-200 bg-gradient-to-br from-sky-100 via-emerald-50 to-amber-50">
+                  <svg
+                    viewBox="0 0 80 48"
+                    className="absolute inset-0 h-full w-full opacity-80"
+                    aria-hidden="true"
+                  >
+                    <path d="M0 28C10 18 18 18 28 28s18 10 28 0 18-10 24-4" fill="none" stroke="#0ea5e9" strokeWidth="4" strokeLinecap="round" />
+                    <path d="M-4 10C10 22 20 22 34 10s22-8 34 4 18 12 24 8" fill="none" stroke="#22c55e" strokeWidth="4" strokeLinecap="round" opacity="0.8" />
+                    <path d="M8 44L16 4M32 48L40 0M56 44L64 4" fill="none" stroke="#94a3b8" strokeWidth="2" opacity="0.35" />
+                    <circle cx="46" cy="24" r="6" fill="#111827" opacity="0.15" />
+                    <circle cx="46" cy="24" r="3.5" fill="#111827" opacity="0.35" />
+                  </svg>
+                </span>
                 Explore Map
               </span>
             </Button>

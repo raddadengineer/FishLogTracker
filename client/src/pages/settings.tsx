@@ -71,6 +71,26 @@ export default function SettingsPage() {
                 />
               </div>
 
+              <div className="flex justify-between items-center gap-4">
+                <div className="min-w-0 flex-1">
+                  <Label htmlFor="offlineTileCache" className="font-medium">Offline map cache</Label>
+                  <p className="text-sm text-gray-500">
+                    Cache OpenStreetMap tiles you view so the map stays usable offline around your spots.
+                  </p>
+                </div>
+                <Switch
+                  id="offlineTileCache"
+                  checked={localStorage.getItem("fishtracker_tile_cache") !== "0"}
+                  onCheckedChange={(checked) => {
+                    localStorage.setItem("fishtracker_tile_cache", checked ? "1" : "0");
+                    navigator.serviceWorker?.controller?.postMessage?.({
+                      type: "SET_TILE_CACHE_ENABLED",
+                      enabled: checked,
+                    });
+                  }}
+                />
+              </div>
+
               <div className="flex justify-between items-center">
                 <div>
                   <Label className="font-medium">Embedded map provider</Label>

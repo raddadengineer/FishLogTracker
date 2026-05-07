@@ -8,8 +8,37 @@ declare const self: ServiceWorkerGlobalScope;
 // Bump this when caching logic changes to force refresh.
 const CACHE_NAME = 'fish-tracker-v2';
 const RUNTIME_CACHE = 'runtime-cache';
+const TILE_CACHE = 'tile-cache-v1';
+const CONFIG_CACHE = 'sw-config-v1';
 // NOTE: we don't ship a separate offline.html; navigation falls back to cached index.html.
 const APP_SHELL = ['/', '/index.html'];
+
+let tileCacheEnabled = true;
+
+async function loadTileCacheFlag() {
+  try {
+    const cache = await caches.open(CONFIG_CACHE);
+    const res = await cache.match("/tile-cache-enabled");
+    if (!res) return;
+    const t = (await res.text()).trim();
+    tileCacheEnabled = t === "1";
+  } catch {
+    // ignore
+  }
+}
+
+async function persistTileCacheFlag() {
+  const cache = await caches.open(CONFIG_CACHE);
+  await cache.put("/tile-cache-enabled", new Response(tileCacheEnabled ? "1" : "0"));
+}
+
+async function trimCache(cacheName: string, maxEntries: number) {
+  const cache = await caches.open(cacheName);
+  const keys = await cache.keys();
+  if (keys.length <= maxEntries) return;
+  // delete oldest entries
+  await Promise.all(keys.slice(0, keys.length - maxEntries).map((k) => cache.delete(k)));
+}
 
 // Install event
 self.addEventListener('install', (event) => {
@@ -24,7 +53,7 @@ self.addEventListener('install', (event) => {
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-  const currentCaches = [CACHE_NAME, RUNTIME_CACHE];
+  const currentCaches = [CACHE_NAME, RUNTIME_CACHE, TILE_CACHE, CONFIG_CACHE];
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return cacheNames.filter(cacheName => !currentCaches.includes(cacheName));
@@ -32,12 +61,46 @@ self.addEventListener('activate', (event) => {
       return Promise.all(cachesToDelete.map(cacheToDelete => {
         return caches.delete(cacheToDelete);
       }));
-    }).then(() => self.clients.claim())
+    }).then(async () => {
+      await loadTileCacheFlag();
+      await self.clients.claim();
+    })
   );
 });
 
 // Fetch event - network first, fallback to cache
 self.addEventListener('fetch', (event) => {
+  // Offline map tile caching (OpenStreetMap tiles)
+  try {
+    const url = new URL(event.request.url);
+    const isOsmTile =
+      (url.hostname === "tile.openstreetmap.org" || url.hostname.endsWith(".tile.openstreetmap.org")) &&
+      url.pathname.split("/").length >= 4; // /{z}/{x}/{y}.png
+
+    if (isOsmTile && tileCacheEnabled && event.request.method === "GET") {
+      event.respondWith(
+        caches.open(TILE_CACHE).then(async (cache) => {
+          const cached = await cache.match(event.request);
+          if (cached) return cached;
+          try {
+            const res = await fetch(event.request, { mode: "cors" });
+            if (res.ok) {
+              cache.put(event.request, res.clone());
+              // Keep cache bounded (best-effort)
+              trimCache(TILE_CACHE, 350).catch(() => {});
+            }
+            return res;
+          } catch {
+            return cached || new Response("Offline tile", { status: 503 });
+          }
+        }),
+      );
+      return;
+    }
+  } catch {
+    // ignore url parse failures
+  }
+
   // Skip cross-origin requests
   if (event.request.url.startsWith(self.location.origin)) {
     const url = new URL(event.request.url);
@@ -140,6 +203,15 @@ self.addEventListener('fetch', (event) => {
         });
       })
     );
+  }
+});
+
+// Receive config updates from the app
+self.addEventListener("message", (event) => {
+  if (!event?.data) return;
+  if (event.data.type === "SET_TILE_CACHE_ENABLED") {
+    tileCacheEnabled = Boolean(event.data.enabled);
+    event.waitUntil(persistTileCacheFlag());
   }
 });
 

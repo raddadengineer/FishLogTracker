@@ -32,6 +32,17 @@ function registerServiceWorker() {
       try {
         const registration = await navigator.serviceWorker.register('/service-worker.js');
         console.log('Service worker registered:', registration);
+
+        // Apply persisted SW config (e.g. tile caching)
+        const tileEnabled = localStorage.getItem("fishtracker_tile_cache") !== "0";
+        if (navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({ type: "SET_TILE_CACHE_ENABLED", enabled: tileEnabled });
+        } else {
+          // Wait for controller on first install
+          navigator.serviceWorker.addEventListener("controllerchange", () => {
+            navigator.serviceWorker.controller?.postMessage({ type: "SET_TILE_CACHE_ENABLED", enabled: tileEnabled });
+          });
+        }
       } catch (error) {
         console.error('Service worker registration failed:', error);
       }

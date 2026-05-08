@@ -19,6 +19,8 @@ import SettingsPage from "@/pages/settings";
 import OfflineCatchesPage from "@/pages/offline-catches";
 import MySpotsPage from "@/pages/my-spots";
 import SpotDetailPage from "@/pages/spot-detail";
+import TripsPage from "@/pages/trips";
+import TripDetailPage from "@/pages/trip-detail";
 import Layout from "@/components/layout/Layout";
 import { useEffect } from "react";
 import { initSyncModule } from "@/lib/localStorageSync";
@@ -70,6 +72,8 @@ function Router() {
         <Route path="/admin" component={AdminPage} />
         <Route path="/test-catch" component={TestCatchPage} />
         <Route path="/offline-catches" component={OfflineCatchesPage} />
+        <Route path="/trips" component={TripsPage} />
+        <Route path="/trips/:id" component={TripDetailPage} />
         <Route path="/my-spot/:id">
           {(params) => <Redirect to={`/my-spots/${params.id}`} />}
         </Route>
